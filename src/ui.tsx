@@ -188,7 +188,16 @@ const uiComponent = () => (
           }}
           value={i.name}
           fontSize={24}
-          onMouseDown={() => { }}
+          onMouseDown={async () => {
+            await signedFetch({
+              url: "https://bingo.dcl.guru/game/" + i.id + "/join", init: {
+                method: "POST",
+                headers: {}
+              }
+            })
+            showJoinGameMenu = false
+            showMenu = true
+          }}
         />
       ))}
     </UiEntity>
@@ -242,7 +251,7 @@ const uiComponent = () => (
         placeholder="Enter games name"
         fontSize={24}
         value=""
-        onChange={(e) => {newGameName = e}}
+        onChange={(e) => { newGameName = e }}
       />
       <Button
         uiTransform={{
