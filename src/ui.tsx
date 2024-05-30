@@ -1,30 +1,54 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { signedFetch } from '~system/SignedFetch'
+import { Game, createGame, getGameList, joinGame, nukeGame, pauseGame, startGame } from './utils'
+import { getPlayer } from '@dcl/sdk/src/players'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
 
 let newGameName = ''
-let gameList: any[] = []
+let currentGame: Game | null = null
+let gameList: Game[] = []
 let bingoNumbers: number[] = []
 bingoNumbers = Array.from({ length: 90 }, () => Math.floor(Math.random() * 100)) // test
-let playerCard: number[] = []
-playerCard = [5, 0, 0, 3, 0, 12, 0, 25, 35, 0, 0, 2, 0, 0, 40, 55, 32, 67, 11, 22, 0, 4, 72, 0, 80, 0, 0]
 let playerCardCheck: [number, boolean][] = []
-playerCardCheck = playerCard.map((number) => [number, false])
 
 let showMenu = true
 let showJoinGameMenu = false
 let showNewGameMenu = false
 let showRulesMenu = false
 let showLeaderboardsMenu = false
+let showAdminMenu = false
 
 let playerInGame = false
 let showPlayerCard = false
 let showBingoBoard = false
 let currentMenu: 'main' | 'player' = 'main'
+
+let currentGameListIndex = 0
+let currentGames: Game[] = []
+
+const updateCurrentGames = () => {
+  currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
+}
+
+const handleGameListUpClick = () => {
+  currentGameListIndex = Math.max(0, currentGameListIndex - 1)
+  updateCurrentGames()
+}
+
+const handleGameListDownClick = () => {
+  currentGameListIndex = Math.min(gameList.length - 4, currentGameListIndex + 1)
+  updateCurrentGames()
+}
+
+const handleUpdatePlayerCard = (playerId: string) => {
+  if (!currentGame) return
+  const flattenedBoard = currentGame.players[playerId].board.flat().map((num) => (num === null ? 0 : num))
+  playerCardCheck = flattenedBoard?.map((number) => [number, false])
+  console.log(playerCardCheck)
+}
 
 const uiComponent = () => (
   <UiEntity
@@ -71,16 +95,9 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={async () => {
-          await signedFetch({
-            url: 'https://bingo.dcl.guru/games/active',
-            init: {
-              method: 'GET',
-              headers: {}
-            }
-          }).then((res) => {
-            gameList = JSON.parse(res.body)
-            console.log(gameList)
-          })
+          gameList = await getGameList()
+          currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
+          console.log(gameList)
           showMenu = false
           showJoinGameMenu = true
         }}
@@ -105,6 +122,7 @@ const uiComponent = () => (
         onMouseDown={() => {
           showMenu = false
           showNewGameMenu = true
+          newGameName = ''
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -163,57 +181,175 @@ const uiComponent = () => (
         display: showJoinGameMenu ? 'flex' : 'none',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'flex-end',
         positionType: 'absolute',
         position: {
-          right: '0%',
-          bottom: '0%'
+          right: '1%',
+          bottom: '1%'
         },
-        width: 480,
-        height: 480
+        width: 1254.4,
+        height: 716.8
       }}
       uiBackground={{
         textureMode: 'stretch',
         texture: {
-          src: 'images/menuGames.png'
+          src: 'images/joinGameMenu.png'
         }
       }}
     >
-      {gameList.map((game, index) => (
-        <Label
-          key={game.id}
+      <UiEntity
+        uiTransform={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          positionType: 'absolute',
+          position: { top: '20%' },
+          width: 1000,
+          height: 350
+        }}
+      >
+        <UiEntity
           uiTransform={{
-            width: 279.75,
-            height: 61.5,
-            margin: {
-              top: index === 0 ? `10%` : `4%`
-            }
+            display: 'flex',
+            flexDirection: 'column'
           }}
-          uiBackground={{
-            textureMode: 'stretch',
-            texture: {
-              src: 'images/button.png'
-            }
-          }}
-          value={game.name}
-          fontSize={24}
-          onMouseDown={async () => {
-            await signedFetch({
-              url: "https://bingo.dcl.guru/game/" + game.id + "/join", init: {
-                method: "POST",
-                headers: {}
-              }
-            })
-            showJoinGameMenu = false
-            showMenu = true
-          }}
-        />
-      ))}
+        >
+          {currentGames.map((game, index) => (
+            <UiEntity
+              key={index}
+              uiTransform={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                width: 1000,
+                height: 350
+              }}
+            >
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5,
+                  margin: {
+                    top: '7%'
+                  }
+                }}
+                uiBackground={{
+                  textureMode: 'stretch',
+                  texture: {
+                    src: 'images/button.png'
+                  }
+                }}
+                value={game.name.length > 18 ? game.name.slice(0, 18) + '...' : game.name}
+                fontSize={24}
+                onMouseDown={async () => {
+                  const myPlayer = getPlayer()
+                  console.log('Joining game', game.id)
+                  currentGame = game
+                  handleUpdatePlayerCard(myPlayer?.userId || '')
+                  if (myPlayer && game.admin === myPlayer.userId) {
+                    showAdminMenu = true
+                    showJoinGameMenu = false
+                  } else {
+                    await joinGame(game.id)
+                    currentMenu = 'player'
+                    showJoinGameMenu = false
+                    playerInGame = true
+                  }
+                }}
+              />
+
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5,
+                  margin: {
+                    top: '7%'
+                  }
+                }}
+                value={Object.keys(game.players).length.toString()}
+                fontSize={32}
+                color={Color4.Purple()}
+                onMouseDown={async () => {
+                  await joinGame(game.id)
+
+                  currentMenu = 'player'
+                  showJoinGameMenu = false
+                  playerInGame = true
+                }}
+              />
+
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5,
+                  margin: {
+                    top: '7%'
+                  }
+                }}
+                value={game.admin.substring(0, 10) + '...'}
+                fontSize={24}
+                color={Color4.Purple()}
+                onMouseDown={async () => {
+                  await joinGame(game.id)
+
+                  currentMenu = 'player'
+                  showJoinGameMenu = false
+                  playerInGame = true
+                }}
+              />
+            </UiEntity>
+          ))}
+        </UiEntity>
+      </UiEntity>
+      <Button
+        uiTransform={{
+          positionType: 'absolute',
+          position: {
+            top: '38%',
+            right: '7%'
+          },
+          width: 50,
+          height: 50
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/buttonUp.png'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={24}
+        onMouseDown={handleGameListUpClick}
+      />
+      <Button
+        uiTransform={{
+          positionType: 'absolute',
+          position: {
+            top: '45%',
+            right: '7%'
+          },
+          width: 50,
+          height: 50
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/buttonDown.png'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={24}
+        onMouseDown={handleGameListDownClick}
+      />
       <Button
         uiTransform={{
           width: 279.75,
           height: 61.5,
           margin: {
-            top: `4%`
+            bottom: `7%`
           }
         }}
         uiBackground={{
@@ -281,7 +417,9 @@ const uiComponent = () => (
         placeholder="Enter games name"
         fontSize={24}
         value=""
-        onChange={(e) => { newGameName = e }}
+        onChange={(e) => {
+          newGameName = e
+        }}
       />
       <Button
         uiTransform={{
@@ -301,17 +439,7 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={24}
         onMouseDown={async () => {
-          await signedFetch({
-            url: 'https://bingo.dcl.guru/game',
-            init: {
-              method: 'POST',
-              body: JSON.stringify({
-                name: newGameName
-              }),
-              headers: {}
-            }
-          })
-          newGameName = ''
+          await createGame(newGameName, 10)
           showMenu = true
           showNewGameMenu = false
         }}
@@ -595,7 +723,8 @@ const uiComponent = () => (
                     : 'images/cellPink.png'
               }
             }}
-            value={number[0] === 0 ? '' : number[0].toString()}
+            // value={number[0] === 0 ? '' : number[0].toString()}
+            value={number[0].toString()}
             fontSize={24}
             onMouseDown={() => {
               number[1] = true
@@ -659,6 +788,135 @@ const uiComponent = () => (
         />
       ))}
     </UiEntity>
+    <UiEntity // Admin Menu
+      uiTransform={{
+        display: showAdminMenu ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        positionType: 'absolute',
+        position: {
+          right: '0%',
+          bottom: '0%'
+        },
+        width: 373.5,
+        height: 751.5
+      }}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: {
+          src: 'images/menuAdmin.png'
+        }
+      }}
+    >
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          position: {
+            top: '40%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={async () => {
+          if (!currentGame) return
+          await startGame(currentGame.id)
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/adminStart.png'
+          }
+        }}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          position: {
+            top: '43%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={async () => {
+          if (!currentGame) return
+          await pauseGame(currentGame.id)
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/adminPause.png'
+          }
+        }}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          position: {
+            top: '46%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={() => {
+          showPlayerCard = !showPlayerCard
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: showPlayerCard ? 'images/bingoCardHide.png' : 'images/bingoCardView.png'
+          }
+        }}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          position: {
+            top: '49%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={() => {
+          showBingoBoard = !showBingoBoard
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: showBingoBoard ? 'images/bingoBoardHide.png' : 'images/bingoBoardView.png'
+          }
+        }}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          position: {
+            top: '52%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={() => {
+          showAdminMenu = false
+          showMenu = true
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/back.png'
+          }
+        }}
+      />
+    </UiEntity>
     <Label // test button
       uiTransform={{
         display: 'flex',
@@ -673,17 +931,25 @@ const uiComponent = () => (
       value="T"
       fontSize={12}
       onMouseDown={() => {
-        if (currentMenu === 'main') {
-          currentMenu = 'player'
-        } else if (currentMenu === 'player') {
-          currentMenu = 'main'
-        }
-        showMenu = !showMenu
-        showJoinGameMenu = false
-        showNewGameMenu = false
-        showRulesMenu = false
-        showLeaderboardsMenu = false
-        playerInGame = !playerInGame
+        const myPlayer = getPlayer()
+        console.log(myPlayer && myPlayer.userId)
+      }}
+    />
+    <Label // test button
+      uiTransform={{
+        display: 'flex',
+        positionType: 'absolute',
+        position: {
+          right: '0%',
+          top: '10%'
+        },
+        width: 50,
+        height: 50
+      }}
+      value="Delete"
+      fontSize={12}
+      onMouseDown={async () => {
+        await nukeGame()
       }}
     />
   </UiEntity>

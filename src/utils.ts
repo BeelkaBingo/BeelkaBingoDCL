@@ -1,6 +1,17 @@
 import { signedFetch } from '~system/SignedFetch'
 import { getUserData } from '~system/UserIdentity'
 
+export async function nukeGame() {
+  const res = await signedFetch({
+    url: 'https://bingo.dcl.guru/nuke',
+    init: {
+      method: 'POST',
+      headers: {}
+    }
+  })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
+}
 export async function joinGame(gameId: string) {
   const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/join',
@@ -136,7 +147,7 @@ export async function createWebsocket() {
   return ws
 }
 
-interface Game {
+export interface Game {
   name: string
   id: string
   createdAt: Date
@@ -151,8 +162,8 @@ interface Game {
   paused: boolean
 }
 
-interface Board {
-  board: (number | undefined)[][]
+export interface Board {
+  board: (number | null)[][]
   checkedNumbers: { number: number; date: Date; id: number }[]
   clickedNumbers: { number: number; date: Date; id: number }[]
 }
@@ -171,7 +182,7 @@ export enum Combinaison {
   FULL_HOUSE = 'fullHouse'
 }
 
-type stringResult = { success: true; message: string } | { success: false; error: string }
+type stringResult = { success: true; board: [number[], number[], number[]] } | { success: false; error: string }
 
 type WebsocketEvents =
   | { type: 'authRequired' }

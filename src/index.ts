@@ -8,7 +8,6 @@ import {
   Transform
 } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
-import { Color4 } from '@dcl/sdk/math'
 
 export function main() {
   setupUi()
@@ -35,7 +34,7 @@ export function main() {
     transparencyMode: MaterialTransparencyMode.MTM_ALPHA_TEST,
     alphaTest: 1,
     metallic: 0.1,
-    albedoColor: Color4.White()
+    albedoColor: { r: 1, g: 0, b: 12, a: 1 }
   })
   Billboard.create(blueButtonGrid, {})
 }
