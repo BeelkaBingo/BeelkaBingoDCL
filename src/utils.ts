@@ -126,8 +126,12 @@ export async function createWebsocket() {
   const ws = new WebSocket('wss://bingo.dcl.guru/ws')
   const userData = await getUserData({})
   const loginCode = await getLoginCode()
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
+  ws.onmessage = async (event) => {
+    const data = JSON.parse(event.data) as WebsocketEvents
+    if (data.type === 'authRequired') {
+      ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
+    }
+
   }
   return ws
 }
@@ -168,3 +172,14 @@ export enum Combinaison {
 }
 
 type stringResult = { success: true; message: string } | { success: false; error: string }
+
+type WebsocketEvents =
+  | { type: 'authRequired' }
+  | { type: 'authSuccess'; message: string }
+  | { type: 'gameStarted'; id: string }
+  | { type: 'gamePaused'; id: string }
+  | { type: 'gameUnpaused'; id: string }
+  | { type: 'gameEnded'; id: string }
+  | { type: 'playerJoined'; id: string; address: string }
+  | { type: 'numberDrawn'; id: string; number: number }
+  | { type: 'bingo'; id: string; address: string; combinaison: "fullHouse"|"line"|"doubleLines" }
