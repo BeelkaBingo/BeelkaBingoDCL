@@ -1,11 +1,55 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { Game, createGame, getGameList, joinGame, nukeGame, pauseGame, startGame } from './utils'
+import { Game, WebsocketEvents, createGame, getGameList, getLoginCode, joinGame, nukeGame, pauseGame, startGame } from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
+import { getUserData } from '~system/UserIdentity'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
+
+export async function createWebsocket() {
+  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
+  const userData = await getUserData({})
+  const loginCode = await getLoginCode()
+  ws.onmessage = async (event) => {
+    const data = JSON.parse(event.data) as WebsocketEvents
+    if (data.type === 'authRequired') {
+      return ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
+    }
+    switch (data.type) {
+      case 'authSuccess':
+        console.log('Auth success')
+        break
+      case 'gameStarted':
+        console.log('Game started', data.id)
+        break
+      case 'gamePaused':
+        console.log('Game paused', data.id)
+        break
+      case 'gameUnpaused':
+        console.log('Game unpaused', data.id)
+        break
+      case 'gameEnded':
+        console.log('Game ended', data.id)
+        break
+      case 'playerJoined':
+        console.log('Player joined', data.id, data.address)
+        break
+      case 'playerLeft':
+        console.log('Player left', data.id, data.address)
+        break
+      case 'numberDrawn':
+        console.log('Number drawn', data.id, data.number)
+        break
+      case 'bingo':
+        console.log('Bingo', data.id, data.address, data.combinaison)
+        break
+    }
+  }
+  return ws
+}
+
 
 let newGameName = ''
 let currentGame: Game | null = null

@@ -133,19 +133,6 @@ export async function callBingo(gameId: string) {
   return JSON.parse(body) as { success: boolean; message: string }
 }
 
-export async function createWebsocket() {
-  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
-  const userData = await getUserData({})
-  const loginCode = await getLoginCode()
-  ws.onmessage = async (event) => {
-    const data = JSON.parse(event.data) as WebsocketEvents
-    if (data.type === 'authRequired') {
-      ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
-    }
-
-  }
-  return ws
-}
 
 export interface Game {
   name: string
@@ -153,7 +140,7 @@ export interface Game {
   createdAt: Date
   startedAt?: Date
   endedAt?: Date
-  type: 'british' | 'symbol'
+  type: string
   drawnNumbers: { number: number; date: Date; id: number }[]
   players: { [userId: string]: Board }
   admin: string
@@ -184,7 +171,7 @@ export enum Combinaison {
 
 type stringResult = { success: true; board: [number[], number[], number[]] } | { success: false; error: string }
 
-type WebsocketEvents =
+export type WebsocketEvents =
   | { type: 'authRequired' }
   | { type: 'authSuccess'; message: string }
   | { type: 'gameStarted'; id: string }
@@ -192,5 +179,6 @@ type WebsocketEvents =
   | { type: 'gameUnpaused'; id: string }
   | { type: 'gameEnded'; id: string }
   | { type: 'playerJoined'; id: string; address: string }
+  | { type: 'playerLeft'; id: string; address: string }
   | { type: 'numberDrawn'; id: string; number: number }
   | { type: 'bingo'; id: string; address: string; combinaison: "fullHouse"|"line"|"doubleLines" }
