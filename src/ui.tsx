@@ -1,9 +1,13 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { signedFetch } from '~system/SignedFetch'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
+
+let newGameName = ""
+let gameList: any[] = []
 
 let showMenu = true
 let showJoinGameMenu = false
@@ -55,7 +59,16 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
+        onMouseDown={async () => {
+          await signedFetch({
+            url: "https://bingo.dcl.guru/games/active", init: {
+              method: "GET",
+              headers: {}
+            }
+          }).then((res) => {
+            gameList = JSON.parse(res.body)
+            console.log(gameList);
+          })
           showMenu = false
           showJoinGameMenu = true
         }}
@@ -152,14 +165,14 @@ const uiComponent = () => (
           src: 'images/menuGames.png'
         }
       }}
-      onMouseDown={() => {
+      onMouseDown={async () => {
         showMenu = true
         showJoinGameMenu = false
       }}
     >
-      {[1, 2, 3, 4, 5].map((i) => (
+      {gameList.map((i) => (
         <Label
-          key={i}
+          key={i.id}
           uiTransform={{
             width: 279.75,
             height: 61.5,
@@ -173,9 +186,9 @@ const uiComponent = () => (
               src: 'images/button.png'
             }
           }}
-          value={`Game ${i}`}
+          value={i.name}
           fontSize={24}
-          onMouseDown={() => {}}
+          onMouseDown={() => { }}
         />
       ))}
     </UiEntity>
@@ -229,7 +242,7 @@ const uiComponent = () => (
         placeholder="Enter games name"
         fontSize={24}
         value=""
-        onChange={() => {}}
+        onChange={(e) => {newGameName = e}}
       />
       <Button
         uiTransform={{
@@ -248,7 +261,20 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={24}
-        onMouseDown={() => {}}
+        onMouseDown={async () => {
+          await signedFetch({
+            url: "https://bingo.dcl.guru/game", init: {
+              method: "POST",
+              body: JSON.stringify({
+                name: newGameName
+              }),
+              headers: {}
+            }
+          })
+          newGameName = ""
+          showMenu = true
+          showNewGameMenu = false
+        }}
       />
       <Button
         uiTransform={{
