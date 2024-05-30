@@ -2,16 +2,18 @@ import { signedFetch } from '~system/SignedFetch'
 import { getUserData } from '~system/UserIdentity'
 
 export async function joinGame(gameId: string) {
-  return await signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/join',
     init: {
       method: 'POST',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
 }
 export async function clickCell(gameId: string, number: number) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/click',
     init: {
       method: 'POST',
@@ -21,9 +23,11 @@ export async function clickCell(gameId: string, number: number) {
       })
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
 }
 export async function createGame(name: string, callingSpeed: number) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game',
     init: {
       method: 'POST',
@@ -36,51 +40,63 @@ export async function createGame(name: string, callingSpeed: number) {
       })
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as { success: boolean; game: Game }
 }
 export async function pauseGame(gameId: string) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/pause',
     init: {
       method: 'POST',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
 }
 export async function startGame(gameId: string) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/start',
     init: {
       method: 'POST',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
 }
 export async function getGame(gameId: string) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId,
     init: {
       method: 'GET',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as Game
 }
 export async function getGameList() {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/games',
     init: {
       method: 'GET',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as Game[]
 }
 export async function getActiveGamesList() {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/games/active',
     init: {
       method: 'GET',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as Game[]
 }
 export async function getLoginCode() {
   const res = await signedFetch({
@@ -91,17 +107,19 @@ export async function getLoginCode() {
     }
   })
   const body = await res.body
-  return JSON.parse(body).loginCode
+  return JSON.parse(body).loginCode as string
 }
 
 export async function callBingo(gameId: string) {
-  return signedFetch({
+  const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/check',
     init: {
       method: 'POST',
       headers: {}
     }
   })
+  const body = await res.body
+  return JSON.parse(body) as { success: boolean; message: string }
 }
 
 export async function createWebsocket() {
@@ -113,3 +131,40 @@ export async function createWebsocket() {
   }
   return ws
 }
+
+interface Game {
+  name: string
+  id: string
+  createdAt: Date
+  startedAt?: Date
+  endedAt?: Date
+  type: 'british' | 'symbol'
+  drawnNumbers: { number: number; date: Date; id: number }[]
+  players: { [userId: string]: Board }
+  admin: string
+  rewards: Rewards[]
+  callingSpeed: number
+  paused: boolean
+}
+
+interface Board {
+  board: (number | undefined)[][]
+  checkedNumbers: { number: number; date: Date; id: number }[]
+  clickedNumbers: { number: number; date: Date; id: number }[]
+}
+
+export interface Rewards {
+  combinaison: Combinaison
+  rewardsServer: string
+  campaignId: string
+  campaignKey: string
+  claimed?: { date: Date; ethAddress: string }
+}
+
+export enum Combinaison {
+  SINGLE_LINE = 'singleLine',
+  DOUBLE_LINES = 'doubleLines',
+  FULL_HOUSE = 'fullHouse'
+}
+
+type stringResult = { success: true; message: string } | { success: false; error: string }
