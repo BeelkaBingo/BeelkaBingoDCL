@@ -178,9 +178,9 @@ const uiComponent = () => (
         }
       }}
     >
-      {gameList.map((games, index) => (
+      {gameList.map((game, index) => (
         <Label
-          key={games.id}
+          key={game.id}
           uiTransform={{
             width: 279.75,
             height: 61.5,
@@ -194,11 +194,11 @@ const uiComponent = () => (
               src: 'images/button.png'
             }
           }}
-          value={games.name}
+          value={game.name}
           fontSize={24}
           onMouseDown={async () => {
             await signedFetch({
-              url: "https://bingo.dcl.guru/game/" + i.id + "/join", init: {
+              url: "https://bingo.dcl.guru/game/" + game.id + "/join", init: {
                 method: "POST",
                 headers: {}
               }
