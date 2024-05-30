@@ -6,7 +6,7 @@ export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
 
-let newGameName = ""
+let newGameName = ''
 let gameList: any[] = []
 
 let showMenu = true
@@ -61,13 +61,14 @@ const uiComponent = () => (
         fontSize={18}
         onMouseDown={async () => {
           await signedFetch({
-            url: "https://bingo.dcl.guru/games/active", init: {
-              method: "GET",
+            url: 'https://bingo.dcl.guru/games/active',
+            init: {
+              method: 'GET',
               headers: {}
             }
           }).then((res) => {
             gameList = JSON.parse(res.body)
-            console.log(gameList);
+            console.log(gameList)
           })
           showMenu = false
           showJoinGameMenu = true
@@ -165,19 +166,15 @@ const uiComponent = () => (
           src: 'images/menuGames.png'
         }
       }}
-      onMouseDown={async () => {
-        showMenu = true
-        showJoinGameMenu = false
-      }}
     >
-      {gameList.map((i) => (
+      {gameList.map((games, index) => (
         <Label
-          key={i.id}
+          key={games.id}
           uiTransform={{
             width: 279.75,
             height: 61.5,
             margin: {
-              top: i === 1 ? `10%` : `4%`
+              top: index === 0 ? `10%` : `4%`
             }
           }}
           uiBackground={{
@@ -186,11 +183,33 @@ const uiComponent = () => (
               src: 'images/button.png'
             }
           }}
-          value={i.name}
+          value={games.name}
           fontSize={24}
-          onMouseDown={() => { }}
+          onMouseDown={() => {}}
         />
       ))}
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          margin: {
+            top: `4%`
+          }
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/back.png'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={24}
+        onMouseDown={() => {
+          showMenu = true
+          showJoinGameMenu = false
+        }}
+      />
     </UiEntity>
     <UiEntity // New Game
       uiTransform={{
@@ -242,7 +261,9 @@ const uiComponent = () => (
         placeholder="Enter games name"
         fontSize={24}
         value=""
-        onChange={(e) => {newGameName = e}}
+        onChange={(e) => {
+          newGameName = e
+        }}
       />
       <Button
         uiTransform={{
@@ -263,15 +284,16 @@ const uiComponent = () => (
         fontSize={24}
         onMouseDown={async () => {
           await signedFetch({
-            url: "https://bingo.dcl.guru/game", init: {
-              method: "POST",
+            url: 'https://bingo.dcl.guru/game',
+            init: {
+              method: 'POST',
               body: JSON.stringify({
                 name: newGameName
               }),
               headers: {}
             }
           })
-          newGameName = ""
+          newGameName = ''
           showMenu = true
           showNewGameMenu = false
         }}
