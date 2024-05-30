@@ -20,13 +20,19 @@ export function setupUi() {
 }
 
 export async function createWebsocket() {
-  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
   const userData = await getUserData({})
-  const loginCode = await getLoginCode()
+  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
+  
   ws.onmessage = async (event) => {
+    console.log(event)
     const data = JSON.parse(event.data) as WebsocketEvents
+    console.log(data);
+    
     if (data.type === 'authRequired') {
-      return ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
+      const loginCode = await getLoginCode()
+      console.log(loginCode);
+
+      ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
     }
     switch (data.type) {
       case 'authSuccess':
