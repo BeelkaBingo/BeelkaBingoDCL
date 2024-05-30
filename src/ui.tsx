@@ -1,11 +1,22 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { Game, WebsocketEvents, createGame, getGameList, getLoginCode, joinGame, nukeGame, pauseGame, startGame } from './utils'
+import {
+  Game,
+  WebsocketEvents,
+  createGame,
+  getActiveGamesList,
+  getLoginCode,
+  joinGame,
+  nukeGame,
+  pauseGame,
+  startGame
+} from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
+  createWebsocket();
 }
 
 export async function createWebsocket() {
@@ -50,7 +61,6 @@ export async function createWebsocket() {
   return ws
 }
 
-
 let newGameName = ''
 let currentGame: Game | null = null
 let gameList: Game[] = []
@@ -89,6 +99,7 @@ const handleGameListDownClick = () => {
 
 const handleUpdatePlayerCard = (playerId: string) => {
   if (!currentGame) return
+  if (!currentGame.players[playerId]) return
   const flattenedBoard = currentGame.players[playerId].board.flat().map((num) => (num === null ? 0 : num))
   playerCardCheck = flattenedBoard?.map((number) => [number, false])
   console.log(playerCardCheck)
@@ -139,7 +150,7 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={async () => {
-          gameList = await getGameList()
+          gameList = await getActiveGamesList()
           currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
           console.log(gameList)
           showMenu = false
@@ -255,7 +266,10 @@ const uiComponent = () => (
         <UiEntity
           uiTransform={{
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            margin: {
+              top: '4%'
+            }
           }}
         >
           {currentGames.map((game, index) => (
@@ -267,16 +281,16 @@ const uiComponent = () => (
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
                 width: 1000,
-                height: 350
+                height: "auto",
+                margin: {
+                  bottom: '1%'
+                }
               }}
             >
               <Label
                 uiTransform={{
                   width: 279.75,
                   height: 61.5,
-                  margin: {
-                    top: '7%'
-                  }
                 }}
                 uiBackground={{
                   textureMode: 'stretch',
@@ -292,6 +306,7 @@ const uiComponent = () => (
                   currentGame = game
                   handleUpdatePlayerCard(myPlayer?.userId || '')
                   if (myPlayer && game.admin === myPlayer.userId) {
+                    await joinGame(game.id)
                     showAdminMenu = true
                     showJoinGameMenu = false
                   } else {
@@ -307,9 +322,6 @@ const uiComponent = () => (
                 uiTransform={{
                   width: 279.75,
                   height: 61.5,
-                  margin: {
-                    top: '7%'
-                  }
                 }}
                 value={Object.keys(game.players).length.toString()}
                 fontSize={32}
@@ -327,9 +339,6 @@ const uiComponent = () => (
                 uiTransform={{
                   width: 279.75,
                   height: 61.5,
-                  margin: {
-                    top: '7%'
-                  }
                 }}
                 value={game.admin.substring(0, 10) + '...'}
                 fontSize={24}
@@ -887,12 +896,15 @@ const uiComponent = () => (
         fontSize={18}
         onMouseDown={async () => {
           if (!currentGame) return
-          await pauseGame(currentGame.id)
+          if (currentGame.paused) await startGame(currentGame.id)
+          else {
+            await pauseGame(currentGame.id)
+          }
         }}
         uiBackground={{
           textureMode: 'stretch',
           texture: {
-            src: 'images/adminPause.png'
+            src: currentGame?.paused ? 'images/adminResume.png' : 'images/adminPause.png'
           }
         }}
       />
@@ -951,6 +963,8 @@ const uiComponent = () => (
         fontSize={18}
         onMouseDown={() => {
           showAdminMenu = false
+          showBingoBoard = false
+          showPlayerCard = false
           showMenu = true
         }}
         uiBackground={{
