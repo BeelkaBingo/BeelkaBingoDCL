@@ -57,6 +57,7 @@ let currentGames: Game[] = []
 let gamePaused = true
 
 let bingoType: 'line' | 'fullHouse' | 'doubleLines' | '' = ''
+let announcementTypes: 'gameStarted' | 'gameEnded' | 'gamePaused' | '' = ''
 let leaderboard: LeaderboardEntry[] = []
 
 const streamEntity = engine.addEntity()
@@ -85,7 +86,7 @@ for (let i = 1; i < 25; i++) {
 }
 
 const bingoSounds: { [name: string]: Entity } = {}
-for (const sound of ["line", "fullHouse", "doubleLines"]) {
+for (const sound of ['line', 'fullHouse', 'doubleLines']) {
   const audioSource = engine.addEntity()
   AudioSource.create(audioSource, {
     audioClipUrl: `sounds/bingos/${sound}.mp3`,
@@ -99,7 +100,7 @@ for (const sound of ["line", "fullHouse", "doubleLines"]) {
     position: Vector3.create(0, 0.4, 0),
     parent: engine.PlayerEntity
   })
-  bingoSounds[sound] = (audioSource)
+  bingoSounds[sound] = audioSource
 }
 executeTask(async () => {
   const audioSource = engine.addEntity()
@@ -115,7 +116,7 @@ executeTask(async () => {
     position: Vector3.create(0, 0.4, 0),
     parent: engine.PlayerEntity
   })
-  bingoSounds["bingo"] = (audioSource)
+  bingoSounds['bingo'] = audioSource
 })
 
 function playBingoSound(sound: string) {
@@ -184,10 +185,18 @@ export async function createWebsocket() {
       case 'gameStarted':
         console.log('Game started', data.id)
         gamePaused = false
+        announcementTypes = 'gameStarted'
+        utils.timers.setTimeout(function () {
+          announcementTypes = ''
+        }, 15000)
         break
       case 'gamePaused':
         console.log('Game paused', data.id)
         gamePaused = true
+        announcementTypes = 'gamePaused'
+        utils.timers.setTimeout(function () {
+          announcementTypes = ''
+        }, 15000)
         break
       case 'gameUnpaused':
         console.log('Game unpaused', data.id)
@@ -195,6 +204,10 @@ export async function createWebsocket() {
         break
       case 'gameEnded':
         console.log('Game ended', data.id)
+        announcementTypes = 'gameEnded'
+        utils.timers.setTimeout(function () {
+          announcementTypes = ''
+        }, 15000)
         break
       case 'playerJoined':
         if (currentGame?.admin.toLowerCase() === myPlayer?.userId.toLowerCase()) {
@@ -221,7 +234,7 @@ export async function createWebsocket() {
         if (data.id != currentGame?.id) return
         switch (data.combinaison) {
           case 'line':
-            playBingoSound("line")
+            playBingoSound('line')
             console.log('line')
             bingoType = 'line'
             utils.timers.setTimeout(function () {
@@ -230,7 +243,7 @@ export async function createWebsocket() {
             break
 
           case 'fullHouse':
-            playBingoSound("fullHouse")
+            playBingoSound('fullHouse')
             bingoType = 'fullHouse'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -238,7 +251,7 @@ export async function createWebsocket() {
             break
 
           case 'doubleLines':
-            playBingoSound("doubleLines")
+            playBingoSound('doubleLines')
             bingoType = 'doubleLines'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -1145,8 +1158,8 @@ const uiComponent = () => (
                   number[1] === true
                     ? 'images/acorns1.png'
                     : number[0] === 0
-                      ? 'images/cellBlue.png'
-                      : 'images/cellPink.png'
+                    ? 'images/cellBlue.png'
+                    : 'images/cellPink.png'
               }
             }}
             value={number[0] === 0 ? '' : number[0].toString()}
@@ -1181,7 +1194,7 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         onMouseDown={async () => {
-          playBingoSound("bingo")
+          playBingoSound('bingo')
           const checkBingo = await callBingo(currentGame?.id || '')
           console.log(checkBingo)
         }}
@@ -1483,36 +1496,48 @@ const uiComponent = () => (
             bingoType === 'line'
               ? 'images/bingoLine.png'
               : bingoType === 'fullHouse'
-                ? 'images/bingoFullHouse.png'
-                : bingoType === 'doubleLines'
-                  ? 'images/bingoDoubleLines.png'
-                  : ''
+              ? 'images/bingoFullHouse.png'
+              : bingoType === 'doubleLines'
+              ? 'images/bingoDoubleLines.png'
+              : ''
         }
       }}
       onMouseDown={() => {
         bingoType = ''
       }}
     ></UiEntity>
-    <Label // test button
+    <UiEntity // Announcements
       uiTransform={{
-        display: 'flex',
+        display: announcementTypes != '' ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         positionType: 'absolute',
         position: {
-          right: '0%',
-          top: '5%'
+          // right: '30%',
+          bottom: '10%'
         },
-        width: 50,
-        height: 50
+        width: 641,
+        height: 641
       }}
-      value="T"
-      fontSize={12}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: {
+          src:
+          announcementTypes === 'gameStarted'
+              ? 'images/gameStartedann.png'
+              : announcementTypes === 'gameEnded'
+              ? 'images/gameEndedann.png'
+              : announcementTypes === 'gamePaused'
+              ? 'images/gamePausedann.png'
+              : ''
+        }
+      }}
       onMouseDown={() => {
-        const myPlayer = getPlayer()
-        console.log(myPlayer && myPlayer)
-        console.log(currentGame)
+        announcementTypes = ''
       }}
-    />
-    <Label // test button
+    ></UiEntity>
+    {/* <Label // test button
       uiTransform={{
         display: 'flex',
         positionType: 'absolute',
@@ -1526,31 +1551,12 @@ const uiComponent = () => (
       value="Bingo"
       fontSize={12}
       onMouseDown={() => {
-        bingoType = 'line'
+        announcementTypes = 'gamePaused'
 
         utils.timers.setTimeout(function () {
-          console.log('3 seconds passed')
-          bingoType = ''
+          announcementTypes = ''
         }, 3000)
       }}
-    />
-    <Label // test button
-      uiTransform={{
-        display: 'flex',
-        positionType: 'absolute',
-        position: {
-          right: '0%',
-          top: '20%'
-        },
-        width: 50,
-        height: 50
-      }}
-      value="Delete"
-      fontSize={12}
-      onMouseDown={async () => {
-        console.log('Nuking game')
-        await nukeGame()
-      }}
-    />
+    /> */}
   </UiEntity>
 )
