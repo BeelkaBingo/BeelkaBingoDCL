@@ -37,7 +37,7 @@ export async function clickCell(gameId: string, number: number) {
   const body = await res.body
   return JSON.parse(body) as stringResult
 }
-export async function createGame(name: string, callingSpeed: number) {
+export async function createGame(name: string, callingSpeed: number, adminName: string) {
   const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game',
     init: {
@@ -47,7 +47,8 @@ export async function createGame(name: string, callingSpeed: number) {
       },
       body: JSON.stringify({
         name: name,
-        callingSpeed: callingSpeed
+        callingSpeed: callingSpeed,
+        adminName: adminName
       })
     }
   })
@@ -133,7 +134,6 @@ export async function callBingo(gameId: string) {
   return JSON.parse(body) as { success: boolean; message: string }
 }
 
-
 export interface Game {
   name: string
   id: string
@@ -144,6 +144,7 @@ export interface Game {
   drawnNumbers: { number: number; date: Date; id: number }[]
   players: { [userId: string]: Board }
   admin: string
+  adminName: string
   rewards: Rewards[]
   callingSpeed: number
   paused: boolean
@@ -181,4 +182,4 @@ export type WebsocketEvents =
   | { type: 'playerJoined'; id: string; address: string }
   | { type: 'playerLeft'; id: string; address: string }
   | { type: 'numberDrawn'; id: string; number: number }
-  | { type: 'bingo'; id: string; address: string; combinaison: "fullHouse"|"line"|"doubleLines" }
+  | { type: 'bingo'; id: string; address: string; combinaison: 'fullHouse' | 'line' | 'doubleLines' }

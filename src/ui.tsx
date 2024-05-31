@@ -1,6 +1,6 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { AudioSource, engine } from "@dcl/sdk/ecs"
+import { AudioSource, engine } from '@dcl/sdk/ecs'
 import {
   Game,
   WebsocketEvents,
@@ -30,6 +30,7 @@ let gameList: Game[] = []
 export let bingoNumbers: number[] = []
 let playerCardCheck: [number, boolean][] = []
 
+let isGameStarted = false
 let showMenu = true
 let showJoinGameMenu = false
 let showNewGameMenu = false
@@ -358,6 +359,8 @@ const uiComponent = () => (
                   bingoNumbers.forEach((number, index) => {
                     createNumbers(number, index)
                   })
+                  isGameStarted = currentGame.startedAt !== undefined
+                  gamePaused = currentGame.paused
                   if (myPlayer && game.admin === myPlayer.userId) {
                     await joinGame(game.id)
                     showAdminMenu = true
@@ -393,7 +396,7 @@ const uiComponent = () => (
                   width: 279.75,
                   height: 61.5
                 }}
-                value={game.admin.substring(0, 10) + '...'}
+                value={game.adminName.substring(0, 10) + '...'}
                 fontSize={24}
                 color={Color4.Purple()}
                 onMouseDown={async () => {
@@ -545,7 +548,9 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={24}
         onMouseDown={async () => {
-          await createGame(newGameName, 10)
+          const adminName = getPlayer()
+          console.log("adminName", adminName)
+          await createGame(newGameName, 10, adminName?.name || 'Guest')
           showMenu = true
           showNewGameMenu = false
         }}
@@ -836,11 +841,9 @@ const uiComponent = () => (
                     : 'images/cellPink.png'
               }
             }}
-            // value={number[0] === 0 ? '' : number[0].toString()}
-            value={number[0].toString()}
+            value={number[0] === 0 ? '' : number[0].toString()}
             fontSize={24}
             onMouseDown={async () => {
-              // number[1] = true
               console.log(number[0])
               let checkCell = await clickCell(currentGame?.id || '', number[0])
               console.log(checkCell)
@@ -899,6 +902,7 @@ const uiComponent = () => (
         display: showAdminMenu ? 'flex' : 'none',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         positionType: 'absolute',
         position: {
           right: '0%',
@@ -914,12 +918,42 @@ const uiComponent = () => (
         }
       }}
     >
-      <Button
+      <Label
         uiTransform={{
           width: 279.75,
+          height: 32,
+          margin: {
+            top: '48%'
+          }
+        }}
+        value={'Game Name: ' + currentGame?.name || ''}
+        fontSize={18}
+      />
+      <Label
+        uiTransform={{
+          display: isGameStarted ? 'flex' : 'none',
+          width: 279.75,
+          height: 32
+        }}
+        value={'Drawn Numbers: ' + currentGame?.drawnNumbers.length + ' / 90'}
+        fontSize={18}
+      />
+      {/* <Label
+        uiTransform={{
+          display: isGameStarted ? 'flex' : 'none',
+          width: 279.75,
+          height: 32
+        }}
+        value={'Last Number: ' + currentGame?.drawnNumbers[currentGame?.drawnNumbers.length - 1].number || ''}
+        fontSize={18}
+      /> */}
+      <Button
+        uiTransform={{
+          display: isGameStarted ? 'none' : 'flex',
+          width: 279.75,
           height: 61.5,
-          position: {
-            top: '40%'
+          margin: {
+            top: '4%'
           }
         }}
         value=""
@@ -928,6 +962,7 @@ const uiComponent = () => (
         onMouseDown={async () => {
           if (!currentGame) return
           await startGame(currentGame.id)
+          isGameStarted = true
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -938,10 +973,11 @@ const uiComponent = () => (
       />
       <Button
         uiTransform={{
+          display: isGameStarted ? 'flex' : 'none',
           width: 279.75,
           height: 61.5,
-          position: {
-            top: '43%'
+          margin: {
+            top: '4%'
           }
         }}
         value=""
@@ -969,8 +1005,8 @@ const uiComponent = () => (
         uiTransform={{
           width: 279.75,
           height: 61.5,
-          position: {
-            top: '46%'
+          margin: {
+            top: '4%'
           }
         }}
         value=""
@@ -993,8 +1029,8 @@ const uiComponent = () => (
         uiTransform={{
           width: 279.75,
           height: 61.5,
-          position: {
-            top: '49%'
+          margin: {
+            top: '4%'
           }
         }}
         value=""
@@ -1017,8 +1053,8 @@ const uiComponent = () => (
         uiTransform={{
           width: 279.75,
           height: 61.5,
-          position: {
-            top: '52%'
+          margin: {
+            top: '4%'
           }
         }}
         value=""
