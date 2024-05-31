@@ -4,6 +4,7 @@ import { AudioSource, engine } from "@dcl/sdk/ecs"
 import {
   Game,
   WebsocketEvents,
+  callBingo,
   clickCell,
   createGame,
   getActiveGamesList,
@@ -27,8 +28,6 @@ let newGameName = ''
 let currentGame: Game | null = null
 let gameList: Game[] = []
 export let bingoNumbers: number[] = []
-export let bingoNumbersTest: number[] = [1, 4, 7, 10]
-// bingoNumbers = Array.from({ length: 90 }, () => Math.floor(Math.random() * 100)) // test
 let playerCardCheck: [number, boolean][] = []
 
 let showMenu = true
@@ -870,8 +869,9 @@ const uiComponent = () => (
         }}
         value=""
         variant="secondary"
-        onMouseDown={() => {
+        onMouseDown={async () => {
           playBingoSound()
+          callBingo(currentGame?.id || '')
         }}
       />
     </UiEntity>
