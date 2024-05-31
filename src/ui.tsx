@@ -3,8 +3,11 @@ import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl
 import {
   Game,
   WebsocketEvents,
+  checkCell,
+  clickCell,
   createGame,
   getActiveGamesList,
+  getGame,
   getLoginCode,
   joinGame,
   nukeGame,
@@ -16,62 +19,15 @@ import { getUserData } from '~system/UserIdentity'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
-  createWebsocket();
-}
-
-export async function createWebsocket() {
-  const userData = await getUserData({})
-  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
-  
-  ws.onmessage = async (event) => {
-    console.log(event)
-    const data = JSON.parse(event.data) as WebsocketEvents
-    console.log(data);
-    
-    if (data.type === 'authRequired') {
-      const loginCode = await getLoginCode()
-      console.log(loginCode);
-
-      ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
-    }
-    switch (data.type) {
-      case 'authSuccess':
-        console.log('Auth success')
-        break
-      case 'gameStarted':
-        console.log('Game started', data.id)
-        break
-      case 'gamePaused':
-        console.log('Game paused', data.id)
-        break
-      case 'gameUnpaused':
-        console.log('Game unpaused', data.id)
-        break
-      case 'gameEnded':
-        console.log('Game ended', data.id)
-        break
-      case 'playerJoined':
-        console.log('Player joined', data.id, data.address)
-        break
-      case 'playerLeft':
-        console.log('Player left', data.id, data.address)
-        break
-      case 'numberDrawn':
-        console.log('Number drawn', data.id, data.number)
-        break
-      case 'bingo':
-        console.log('Bingo', data.id, data.address, data.combinaison)
-        break
-    }
-  }
-  return ws
+  createWebsocket()
 }
 
 let newGameName = ''
 let currentGame: Game | null = null
 let gameList: Game[] = []
-let bingoNumbers: number[] = []
-bingoNumbers = Array.from({ length: 90 }, () => Math.floor(Math.random() * 100)) // test
+export let bingoNumbers: number[] = []
+export let bingoNumbersTest: number[] = [1, 4, 7, 10]
+// bingoNumbers = Array.from({ length: 90 }, () => Math.floor(Math.random() * 100)) // test
 let playerCardCheck: [number, boolean][] = []
 
 let showMenu = true
@@ -88,6 +44,78 @@ let currentMenu: 'main' | 'player' = 'main'
 
 let currentGameListIndex = 0
 let currentGames: Game[] = []
+
+let gamePaused = true
+
+const generateBingoNumbers = () => {
+  return bingoNumbers.map((number, index) => (
+    <Label
+      key={index}
+      uiTransform={{ width: 55, height: 55 }}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: { src: 'images/cellPink.png' }
+      }}
+      value={number.toString()}
+      fontSize={18}
+    />
+  ))
+}
+
+export async function createWebsocket() {
+  const userData = await getUserData({})
+  const ws = new WebSocket('wss://bingo.dcl.guru/ws')
+
+  ws.onmessage = async (event) => {
+    console.log(event)
+    const data = JSON.parse(event.data) as WebsocketEvents
+    console.log(data)
+
+    if (data.type === 'authRequired') {
+      const loginCode = await getLoginCode()
+      console.log(loginCode)
+
+      ws.send(JSON.stringify({ type: 'auth', address: userData.data?.userId, loginCode }))
+    }
+    switch (data.type) {
+      case 'authSuccess':
+        console.log('Auth success')
+        break
+      case 'gameStarted':
+        console.log('Game started', data.id)
+        gamePaused = false
+        break
+      case 'gamePaused':
+        console.log('Game paused', data.id)
+        gamePaused = true
+        break
+      case 'gameUnpaused':
+        console.log('Game unpaused', data.id)
+        gamePaused = false
+        break
+      case 'gameEnded':
+        console.log('Game ended', data.id)
+        break
+      case 'playerJoined':
+        console.log('Player joined', data.id, data.address)
+        break
+      case 'playerLeft':
+        console.log('Player left', data.id, data.address)
+        break
+      case 'numberDrawn':
+        console.log('Number drawn', data.id, data.number)
+        console.log('new number drawn', data.number)
+        bingoNumbers.push(data.number)
+        generateBingoNumbers()
+        console.log(bingoNumbers)
+        break
+      case 'bingo':
+        console.log('Bingo', data.id, data.address, data.combinaison)
+        break
+    }
+  }
+  return ws
+}
 
 const updateCurrentGames = () => {
   currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
@@ -287,7 +315,7 @@ const uiComponent = () => (
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
                 width: 1000,
-                height: "auto",
+                height: 'auto',
                 margin: {
                   bottom: '1%'
                 }
@@ -296,7 +324,7 @@ const uiComponent = () => (
               <Label
                 uiTransform={{
                   width: 279.75,
-                  height: 61.5,
+                  height: 61.5
                 }}
                 uiBackground={{
                   textureMode: 'stretch',
@@ -310,7 +338,6 @@ const uiComponent = () => (
                   const myPlayer = getPlayer()
                   console.log('Joining game', game.id)
                   currentGame = game
-                  handleUpdatePlayerCard(myPlayer?.userId || '')
                   if (myPlayer && game.admin === myPlayer.userId) {
                     await joinGame(game.id)
                     showAdminMenu = true
@@ -327,7 +354,7 @@ const uiComponent = () => (
               <Label
                 uiTransform={{
                   width: 279.75,
-                  height: 61.5,
+                  height: 61.5
                 }}
                 value={Object.keys(game.players).length.toString()}
                 fontSize={32}
@@ -344,7 +371,7 @@ const uiComponent = () => (
               <Label
                 uiTransform={{
                   width: 279.75,
-                  height: 61.5,
+                  height: 61.5
                 }}
                 value={game.admin.substring(0, 10) + '...'}
                 fontSize={24}
@@ -651,6 +678,8 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={() => {
+          const myPlayer = getPlayer()
+          handleUpdatePlayerCard(myPlayer?.userId || '')
           showPlayerCard = !showPlayerCard
         }}
         uiBackground={{
@@ -716,7 +745,12 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {}}
+        onMouseDown={() => {
+          showMenu = true
+          showBingoBoard = false
+          showPlayerCard = false
+          playerInGame = false
+        }}
         uiBackground={{
           textureMode: 'stretch',
           texture: {
@@ -785,8 +819,12 @@ const uiComponent = () => (
             // value={number[0] === 0 ? '' : number[0].toString()}
             value={number[0].toString()}
             fontSize={24}
-            onMouseDown={() => {
-              number[1] = true
+            onMouseDown={async () => {
+              // number[1] = true
+              console.log(number[0])
+              // let checkCell = await clickCell(currentGame?.id || '', number[0])
+              let checkCellRes = await checkCell(currentGame?.id || '', number[0])
+              console.log(checkCellRes)
             }}
           />
         ))}
@@ -828,24 +866,7 @@ const uiComponent = () => (
         height: 830
       }}
     >
-      {bingoNumbers.map((number, index) => (
-        <Label
-          key={index}
-          uiTransform={{
-            width: 55,
-            height: 55
-          }}
-          uiBackground={{
-            textureMode: 'stretch',
-            texture: {
-              src: 'images/cellPink.png'
-            }
-          }}
-          value={number.toString()}
-          fontSize={18}
-          onMouseDown={() => {}}
-        />
-      ))}
+      {generateBingoNumbers()}
     </UiEntity>
     <UiEntity // Admin Menu
       uiTransform={{
@@ -901,16 +922,20 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={async () => {
+          currentGame = await getGame(currentGame?.id || '')
           if (!currentGame) return
-          if (currentGame.paused) await startGame(currentGame.id)
-          else {
+          if (currentGame.paused) {
+            gamePaused = false
+            await startGame(currentGame.id)
+          } else if (!currentGame.paused) {
+            gamePaused = true
             await pauseGame(currentGame.id)
           }
         }}
         uiBackground={{
           textureMode: 'stretch',
           texture: {
-            src: currentGame?.paused ? 'images/adminResume.png' : 'images/adminPause.png'
+            src: gamePaused ? 'images/adminResume.png' : 'images/adminPause.png'
           }
         }}
       />
@@ -925,7 +950,10 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
+        onMouseDown={async () => {
+          currentGame = await getGame(currentGame?.id || '')
+          const myPlayer = getPlayer()
+          handleUpdatePlayerCard(myPlayer?.userId || '')
           showPlayerCard = !showPlayerCard
         }}
         uiBackground={{
@@ -947,6 +975,9 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={() => {
+          if (!currentGame) return
+          bingoNumbers.length = 0
+          bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
           showBingoBoard = !showBingoBoard
         }}
         uiBackground={{
@@ -995,8 +1026,9 @@ const uiComponent = () => (
       value="T"
       fontSize={12}
       onMouseDown={() => {
-        const myPlayer = getPlayer()
-        console.log(myPlayer && myPlayer.userId)
+        // const myPlayer = getPlayer()
+        // console.log(myPlayer && myPlayer.userId)
+        console.log(currentGame)
       }}
     />
     <Label // test button

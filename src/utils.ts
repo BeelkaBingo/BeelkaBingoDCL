@@ -37,6 +37,21 @@ export async function clickCell(gameId: string, number: number) {
   const body = await res.body
   return JSON.parse(body) as stringResult
 }
+export async function checkCell(gameId: string, number: number) {
+  const res = await signedFetch({
+    url: 'https://bingo.dcl.guru/game/' + gameId + '/check',
+    init: {
+      method: 'POST',
+      headers: {},
+      body: JSON.stringify({
+        number: number
+      })
+    }
+  })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
+
+}
 export async function createGame(name: string, callingSpeed: number) {
   const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game',
