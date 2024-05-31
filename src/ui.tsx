@@ -790,7 +790,7 @@ const uiComponent = () => (
             }
           }}
         >
-          {leaderboard.map((data, index) => (
+          {leaderboard.slice(0, 10).map((data, index) => (
             <UiEntity
               key={index}
               uiTransform={{
