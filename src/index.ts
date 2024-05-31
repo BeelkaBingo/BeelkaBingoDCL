@@ -1,14 +1,24 @@
 import {
   Billboard,
+  ColliderLayer,
+  EasingFunction,
   engine,
   Entity,
   GltfContainer,
+  InputAction,
   Material,
   MaterialTransparencyMode,
   MeshRenderer,
-  Transform
+  PointerEvents,
+  pointerEventsSystem,
+  PointerEventType,
+  Transform,
+  Tween,
+  TweenLoop,
+  TweenSequence
 } from '@dcl/sdk/ecs'
-import { setupUi } from './ui'
+import { handleJoinGameClick, handleNewGameClick, setupUi } from './ui'
+import { Vector3 } from '@dcl/sdk/math'
 
 export function main() {
   setupUi()
@@ -21,6 +31,8 @@ export function main() {
     position: { x: 0, y: 0, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   })
+  
+  createBalls()
 }
 
 const createdEntities: Entity[] = []
@@ -56,4 +68,105 @@ export function removeAllCreatedEntities() {
     engine.removeEntity(entity)
   }
   createdEntities.length = 0
+}
+
+const ballsPink: Entity[] = []
+const ballsBlue: Entity[] = []
+
+export function createBalls() {
+  const ballPink = engine.addEntity()
+  GltfContainer.create(ballPink, {
+    src: 'assets/scene/models/ballPink.glb',
+    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER,
+  })
+  Transform.create(ballPink, {
+    position: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1 }
+  })
+  Tween.create(ballPink, {
+    mode: Tween.Mode.Move({
+      start: Vector3.create(0, 0, 0),
+      end: Vector3.create(0, 3, 0),
+    }),
+    duration: 4000,
+    easingFunction: EasingFunction.EF_EASESINE,
+  })
+  TweenSequence.create(ballPink, { sequence: [], loop: TweenLoop.TL_YOYO })
+  PointerEvents.create(ballPink, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'New Game',
+          maxDistance: 100,
+          showFeedback: true
+        }
+      }
+    ]
+  })
+  pointerEventsSystem.onPointerDown({ entity: ballPink, opts: { button: InputAction.IA_POINTER } }, () => {
+    console.log('clicked')
+    handleNewGameClick()
+    engine.removeEntity(ballPink)
+    engine.removeEntity(ballBlue)
+    ballsPink.length = 0
+    ballsBlue.length = 0
+  })
+
+  const ballBlue = engine.addEntity()
+  GltfContainer.create(ballBlue, {
+    src: 'assets/scene/models/ballBlue.glb',
+    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER,
+  })
+  Transform.create(ballBlue, {
+    position: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1 }
+  })
+  Tween.create(ballBlue, {
+    mode: Tween.Mode.Move({
+      start: Vector3.create(0, 3, 0),
+      end: Vector3.create(0, 0, 0),
+    }),
+    duration: 4000,
+    easingFunction: EasingFunction.EF_EASESINE,
+  })
+  TweenSequence.create(ballBlue, { sequence: [], loop: TweenLoop.TL_YOYO })
+  PointerEvents.create(ballBlue, {
+    pointerEvents: [
+      {
+        eventType: PointerEventType.PET_DOWN,
+        eventInfo: {
+          button: InputAction.IA_POINTER,
+          hoverText: 'Join Game',
+          maxDistance: 100,
+          showFeedback: true
+        }
+      }
+    ]
+  })
+  pointerEventsSystem.onPointerDown({ entity: ballBlue, opts: { button: InputAction.IA_POINTER } }, () => {
+    console.log('clicked')
+    handleJoinGameClick()
+    engine.removeEntity(ballPink)
+    engine.removeEntity(ballBlue)
+    ballsPink.length = 0
+    ballsBlue.length = 0
+  })
+  ballsPink.push(ballPink)
+  ballsBlue.push(ballBlue)
+}
+
+export function removeBallPink() {
+  for (const entity of ballsPink) {
+    engine.removeEntity(entity)
+  }
+  ballsPink.length = 0
+}
+
+export function removeBallBlue() {
+  for (const entity of ballsBlue) {
+    engine.removeEntity(entity)
+  }
+  ballsBlue.length = 0
 }

@@ -22,7 +22,7 @@ import {
 } from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
-import { createNumbers, removeAllCreatedEntities } from '.'
+import { createBalls, createNumbers, removeAllCreatedEntities } from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -63,7 +63,7 @@ const streamEntity = engine.addEntity()
 AudioStream.create(streamEntity, {
   url: 'https://audio.dcl.guru/radio/8100/radio.mp3?1717186180',
   playing: true,
-  volume: 0.05,
+  volume: 0.05
 })
 
 const numbers: Entity[] = []
@@ -79,7 +79,7 @@ for (let i = 1; i < 25; i++) {
   Transform.create(numberEntity, {
     scale: Vector3.create(0.2, 0.2, 0.2),
     position: Vector3.create(0, 0.4, 0),
-    parent: engine.PlayerEntity,
+    parent: engine.PlayerEntity
   })
   numbers.push(numberEntity)
 }
@@ -100,7 +100,7 @@ AudioSource.create(bingoSoundEntity, {
 Transform.create(bingoSoundEntity, {
   scale: Vector3.create(0.2, 0.2, 0.2),
   position: Vector3.create(0, 0.4, 0),
-  parent: engine.PlayerEntity,
+  parent: engine.PlayerEntity
 })
 
 function playBingoSound() {
@@ -164,10 +164,10 @@ export async function createWebsocket() {
         console.log('Player left', data.id, data.address)
         break
       case 'numberDrawn':
-        if(data.id != currentGame?.id) return
+        if (data.id != currentGame?.id) return
         console.log('Number drawn', data.id, data.number)
         console.log('new number drawn', data.number)
-        playNumberSound(data.number) 
+        playNumberSound(data.number)
         bingoNumbers.push(data.number)
         generateBingoNumbers()
         console.log(bingoNumbers)
@@ -320,6 +320,21 @@ const handleClearCurrentGameData = () => {
   gamePaused = true
 
   removeAllCreatedEntities()
+}
+
+export const handleJoinGameClick = async () => {
+  myPlayer = getPlayer()
+  gameList = await getActiveGamesList()
+  currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
+  console.log(gameList)
+  showMenu = false
+  showJoinGameMenu = true
+}
+
+export const handleNewGameClick = () => {
+  showMenu = false
+  showNewGameMenu = true
+  newGameName = ''
 }
 
 const uiComponent = () => (
@@ -633,6 +648,7 @@ const uiComponent = () => (
         onMouseDown={() => {
           showMenu = true
           showJoinGameMenu = false
+          createBalls()
         }}
       />
     </UiEntity>
@@ -736,6 +752,7 @@ const uiComponent = () => (
           showMenu = true
           showNewGameMenu = false
           newGameName = ''
+          createBalls()
         }}
       />
     </UiEntity>
@@ -1320,7 +1337,7 @@ const uiComponent = () => (
         uiBackground={{
           textureMode: 'stretch',
           texture: {
-            src: 'images/back.png'
+            src: 'images/leaveGame.png'
           }
         }}
       />
