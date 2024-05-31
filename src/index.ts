@@ -1,6 +1,7 @@
 import {
   Billboard,
   engine,
+  Entity,
   GltfContainer,
   Material,
   MaterialTransparencyMode,
@@ -22,8 +23,11 @@ export function main() {
   })
 }
 
+const createdEntities: Entity[] = []
+
 export function createNumbers(number: number, index: number) {
-  const numberEntity = engine.addEntity()
+  const numberEntity: Entity = engine.addEntity()
+  createdEntities.push(numberEntity)
   MeshRenderer.setPlane(numberEntity)
 
   const row = Math.floor(index / 9)
@@ -45,4 +49,11 @@ export function createNumbers(number: number, index: number) {
   })
 
   Billboard.create(numberEntity, {})
+}
+
+export function removeAllCreatedEntities() {
+  for (const entity of createdEntities) {
+    engine.removeEntity(entity)
+  }
+  createdEntities.length = 0
 }

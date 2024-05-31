@@ -17,13 +17,14 @@ import {
 } from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
-import { createNumbers } from '.'
+import { createNumbers, removeAllCreatedEntities } from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
   createWebsocket()
 }
 
+let myPlayer = getPlayer()
 let newGameName = ''
 let currentGame: Game | null = null
 let gameList: Game[] = []
@@ -38,6 +39,8 @@ let showRulesMenu = false
 let showLeaderboardsMenu = false
 let showAdminMenu = false
 
+let playerInAnotherGame = ''
+let playerInAnotherGameId = ''
 let playerInGame = false
 let showPlayerCard = false
 let showBingoBoard = false
@@ -155,6 +158,94 @@ const handleUpdatePlayerCard = (playerId: string) => {
   console.log(playerCardCheck)
 }
 
+const handleJoinGame = async (gameId: string, isAdmin: boolean) => {
+  const myPlayer = getPlayer()
+  if (!myPlayer) return
+  const joinedGame = await getGame(gameId)
+  await joinGame(gameId)
+  currentGame = joinedGame
+  bingoNumbers.length = 0
+  bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+  bingoNumbers.forEach((number, index) => {
+    createNumbers(number, index)
+  })
+  isGameStarted = currentGame.startedAt !== undefined
+  playerCardCheck = []
+
+  if (isAdmin) {
+    showAdminMenu = true
+    showJoinGameMenu = false
+  } else {
+    currentMenu = 'player'
+    showJoinGameMenu = false
+    playerInGame = true
+  }
+}
+
+const handlePlayerInAnotherGame = (games: Game[]) => {
+  console.log('handlePlayerInAnotherGame', myPlayer?.userId)
+  const gameNames = games
+    .map((game) => {
+      if (Object.keys(game.players).includes(myPlayer?.userId || '')) {
+        playerInAnotherGameId = game.id
+        return game.name
+      } else {
+        return ''
+      }
+    })
+    .filter((name) => name !== '')
+  return gameNames.join(', ')
+}
+
+const handleEnterGame = async (gameId: string) => {
+  const gameToEnter = await getGame(gameId)
+  currentGame = gameToEnter
+  bingoNumbers.length = 0
+  bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+  bingoNumbers.forEach((number, index) => {
+    createNumbers(number, index)
+  })
+  isGameStarted = currentGame.startedAt !== undefined
+  playerCardCheck = []
+
+  if (myPlayer && currentGame.admin === myPlayer.userId) {
+    showAdminMenu = true
+    showJoinGameMenu = false
+    playerInAnotherGame = ''
+    playerInAnotherGameId = ''
+  } else {
+    currentMenu = 'player'
+    showJoinGameMenu = false
+    playerInGame = true
+    playerInAnotherGame = ''
+    playerInAnotherGameId = ''
+  }
+}
+
+const handleClearCurrentGameData = () => {
+  newGameName = ''
+  currentGame = null
+  gameList = []
+  bingoNumbers = []
+  playerCardCheck = []
+  isGameStarted = false
+  showMenu = true
+  showJoinGameMenu = false
+  showNewGameMenu = false
+  showRulesMenu = false
+  showLeaderboardsMenu = false
+  showAdminMenu = false
+  playerInGame = false
+  showPlayerCard = false
+  showBingoBoard = false
+  currentMenu = 'main'
+  currentGameListIndex = 0
+  currentGames = []
+  gamePaused = true
+
+  removeAllCreatedEntities()
+}
+
 const uiComponent = () => (
   <UiEntity
     uiTransform={{
@@ -200,6 +291,7 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={async () => {
+          myPlayer = getPlayer()
           gameList = await getActiveGamesList()
           currentGames = gameList.slice(currentGameListIndex, currentGameListIndex + 4)
           console.log(gameList)
@@ -352,24 +444,20 @@ const uiComponent = () => (
                 fontSize={24}
                 onMouseDown={async () => {
                   const myPlayer = getPlayer()
-                  console.log('Joining game', game.id)
-                  currentGame = game
-                  bingoNumbers.length = 0
-                  bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
-                  bingoNumbers.forEach((number, index) => {
-                    createNumbers(number, index)
-                  })
-                  isGameStarted = currentGame.startedAt !== undefined
-                  gamePaused = currentGame.paused
+                  if (
+                    currentGames.map((game) => Object.keys(game.players).includes(myPlayer?.userId || '')) &&
+                    !Object.keys(game.players).includes(myPlayer?.userId || '')
+                  ) {
+                    playerInAnotherGame = handlePlayerInAnotherGame(currentGames)
+                    showJoinGameMenu = false
+                    console.log('playerInAnotherGame', playerInAnotherGame)
+                    return
+                  }
+
                   if (myPlayer && game.admin === myPlayer.userId) {
-                    await joinGame(game.id)
-                    showAdminMenu = true
-                    showJoinGameMenu = false
+                    handleJoinGame(game.id, true)
                   } else {
-                    await joinGame(game.id)
-                    currentMenu = 'player'
-                    showJoinGameMenu = false
-                    playerInGame = true
+                    handleJoinGame(game.id, false)
                   }
                 }}
               />
@@ -379,16 +467,13 @@ const uiComponent = () => (
                   width: 279.75,
                   height: 61.5
                 }}
-                value={Object.keys(game.players).length.toString()}
+                value={
+                  Object.keys(game.players).includes(myPlayer?.userId || '')
+                    ? Object.keys(game.players).length.toString() + ' (Joined)'
+                    : Object.keys(game.players).length.toString()
+                }
                 fontSize={32}
                 color={Color4.Purple()}
-                onMouseDown={async () => {
-                  await joinGame(game.id)
-
-                  currentMenu = 'player'
-                  showJoinGameMenu = false
-                  playerInGame = true
-                }}
               />
 
               <Label
@@ -396,16 +481,9 @@ const uiComponent = () => (
                   width: 279.75,
                   height: 61.5
                 }}
-                value={game.adminName.substring(0, 10) + '...'}
+                value={game.adminName.length > 18 ? game.adminName.slice(0, 18) + '...' : game.adminName}
                 fontSize={24}
                 color={Color4.Purple()}
-                onMouseDown={async () => {
-                  await joinGame(game.id)
-
-                  currentMenu = 'player'
-                  showJoinGameMenu = false
-                  playerInGame = true
-                }}
               />
             </UiEntity>
           ))}
@@ -549,7 +627,7 @@ const uiComponent = () => (
         fontSize={24}
         onMouseDown={async () => {
           const adminName = getPlayer()
-          console.log("adminName", adminName)
+          console.log('adminName', adminName)
           await createGame(newGameName, 10, adminName?.name || 'Guest')
           showMenu = true
           showNewGameMenu = false
@@ -575,6 +653,7 @@ const uiComponent = () => (
         onMouseDown={() => {
           showMenu = true
           showNewGameMenu = false
+          newGameName = ''
         }}
       />
     </UiEntity>
@@ -702,9 +781,13 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
-          const myPlayer = getPlayer()
-          handleUpdatePlayerCard(myPlayer?.userId || '')
+        onMouseDown={async () => {
+          if (!showPlayerCard) {
+            currentGame = await getGame(currentGame?.id || '')
+            console.log('bingo card toggle', currentGame)
+            const myPlayer = getPlayer()
+            handleUpdatePlayerCard(myPlayer?.userId || '')
+          }
           showPlayerCard = !showPlayerCard
         }}
         uiBackground={{
@@ -725,7 +808,13 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
+        onMouseDown={async () => {
+          if (!showBingoBoard) {
+            currentGame = await getGame(currentGame?.id || '')
+            console.log('bingo board toggle', currentGame)
+            bingoNumbers.length = 0
+            bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+          }
           showBingoBoard = !showBingoBoard
         }}
         uiBackground={{
@@ -771,10 +860,7 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={() => {
-          showMenu = true
-          showBingoBoard = false
-          showPlayerCard = false
-          playerInGame = false
+          handleClearCurrentGameData()
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -935,7 +1021,7 @@ const uiComponent = () => (
           width: 279.75,
           height: 32
         }}
-        value={'Drawn Numbers: ' + currentGame?.drawnNumbers.length + ' / 90'}
+        value={'Drawn Numbers: ' + bingoNumbers.length + ' / 90'}
         fontSize={18}
       />
       {/* <Label
@@ -1013,9 +1099,12 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={async () => {
-          currentGame = await getGame(currentGame?.id || '')
-          const myPlayer = getPlayer()
-          handleUpdatePlayerCard(myPlayer?.userId || '')
+          if (!showPlayerCard) {
+            currentGame = await getGame(currentGame?.id || '')
+            console.log('bingo card toggle', currentGame)
+            const myPlayer = getPlayer()
+            handleUpdatePlayerCard(myPlayer?.userId || '')
+          }
           showPlayerCard = !showPlayerCard
         }}
         uiBackground={{
@@ -1036,10 +1125,13 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
-          if (!currentGame) return
-          bingoNumbers.length = 0
-          bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+        onMouseDown={async () => {
+          if (!showBingoBoard) {
+            currentGame = await getGame(currentGame?.id || '')
+            console.log('bingo board toggle', currentGame)
+            bingoNumbers.length = 0
+            bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+          }
           showBingoBoard = !showBingoBoard
         }}
         uiBackground={{
@@ -1061,10 +1153,83 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={18}
         onMouseDown={() => {
-          showAdminMenu = false
-          showBingoBoard = false
-          showPlayerCard = false
-          showMenu = true
+          handleClearCurrentGameData()
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/back.png'
+          }
+        }}
+      />
+    </UiEntity>
+    <UiEntity // Player in another game
+      uiTransform={{
+        display: playerInAnotherGame != '' ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        positionType: 'absolute',
+        position: {
+          right: '0%',
+          bottom: '0%'
+        },
+        width: 373.5,
+        height: 691.5
+      }}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: {
+          src: 'images/menu.png'
+        }
+      }}
+    >
+      <Label
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          margin: {
+            top: '48%'
+          }
+        }}
+        value={'You are already in the game:\n' + playerInAnotherGame}
+        fontSize={18}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          margin: {
+            top: '4%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={async () => {
+          handleEnterGame(playerInAnotherGameId)
+        }}
+        uiBackground={{
+          textureMode: 'stretch',
+          texture: {
+            src: 'images/enterGame.png'
+          }
+        }}
+      />
+      <Button
+        uiTransform={{
+          width: 279.75,
+          height: 61.5,
+          margin: {
+            top: '4%'
+          }
+        }}
+        value=""
+        variant="secondary"
+        fontSize={18}
+        onMouseDown={() => {
+          playerInAnotherGame = ''
+          showJoinGameMenu = true
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -1088,8 +1253,8 @@ const uiComponent = () => (
       value="T"
       fontSize={12}
       onMouseDown={() => {
-        // const myPlayer = getPlayer()
-        // console.log(myPlayer && myPlayer.userId)
+        const myPlayer = getPlayer()
+        console.log(myPlayer && myPlayer)
         console.log(currentGame)
       }}
     />
@@ -1107,6 +1272,7 @@ const uiComponent = () => (
       value="Delete"
       fontSize={12}
       onMouseDown={async () => {
+        console.log('Nuking game')
         await nukeGame()
       }}
     />
