@@ -3,12 +3,14 @@ import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl
 import { AudioSource, engine } from '@dcl/sdk/ecs'
 import {
   Game,
+  LeaderboardEntry,
   WebsocketEvents,
   callBingo,
   clickCell,
   createGame,
   getActiveGamesList,
   getGame,
+  getLeaderboard,
   getLoginCode,
   joinGame,
   nukeGame,
@@ -50,6 +52,8 @@ let currentGameListIndex = 0
 let currentGames: Game[] = []
 
 let gamePaused = true
+
+let leaderboard: LeaderboardEntry[] = []
 
 const bingoSoundEntity = engine.addEntity()
 AudioSource.create(bingoSoundEntity, {
@@ -361,7 +365,10 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={() => {
+        onMouseDown={ async () => {
+          leaderboard = await getLeaderboard()
+          console.log(leaderboard)
+
           showMenu = false
           showLeaderboardsMenu = true
         }}
@@ -381,8 +388,8 @@ const uiComponent = () => (
         justifyContent: 'flex-end',
         positionType: 'absolute',
         position: {
-          right: '1%',
-          bottom: '1%'
+          right: '10%',
+          bottom: '10%'
         },
         width: 1254.4,
         height: 716.8
@@ -444,13 +451,16 @@ const uiComponent = () => (
                 fontSize={24}
                 onMouseDown={async () => {
                   const myPlayer = getPlayer()
+                  if (!myPlayer) return
                   if (
-                    currentGames.map((game) => Object.keys(game.players).includes(myPlayer?.userId || '')) &&
-                    !Object.keys(game.players).includes(myPlayer?.userId || '')
+                    currentGames.some((game) => Object.keys(game.players).includes(myPlayer.userId)) &&
+                    !Object.keys(game.players).includes(myPlayer.userId)
                   ) {
                     playerInAnotherGame = handlePlayerInAnotherGame(currentGames)
                     showJoinGameMenu = false
                     console.log('playerInAnotherGame', playerInAnotherGame)
+                    console.log(currentGames.some((game) => Object.keys(game.players).includes(myPlayer.userId)))
+                    console.log(!Object.keys(game.players).includes(myPlayer.userId))
                     return
                   }
 
@@ -536,7 +546,7 @@ const uiComponent = () => (
           width: 279.75,
           height: 61.5,
           margin: {
-            bottom: `7%`
+            bottom: '2.4%'
           }
         }}
         uiBackground={{
@@ -628,7 +638,7 @@ const uiComponent = () => (
         onMouseDown={async () => {
           const adminName = getPlayer()
           console.log('adminName', adminName)
-          await createGame(newGameName, 10, adminName?.name || 'Guest')
+          await createGame(newGameName, 0.5, adminName?.name || 'Guest')
           showMenu = true
           showNewGameMenu = false
         }}

@@ -134,6 +134,24 @@ export async function callBingo(gameId: string) {
   return JSON.parse(body) as { success: boolean; message: string }
 }
 
+export async function getLeaderboard() {
+  const res = await signedFetch({
+    url: 'https://bingo.dcl.guru/leaderboard',
+    init: {
+      method: 'GET',
+      headers: {}
+    }
+  })
+  const body = await res.body
+  return JSON.parse(body) as LeaderboardEntry[]
+}
+
+export interface LeaderboardEntry {
+  address: string
+  games: number
+  wins: number
+  accuracy: number
+}
 export interface Game {
   name: string
   id: string
