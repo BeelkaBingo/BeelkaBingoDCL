@@ -1,6 +1,8 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { AudioSource, engine } from '@dcl/sdk/ecs'
+export * from '@dcl/sdk'
+import * as utils from '@dcl-sdk/utils'
 import {
   Game,
   LeaderboardEntry,
@@ -54,6 +56,7 @@ let currentGames: Game[] = []
 
 let gamePaused = true
 
+let bingoType: 'line' | 'fullHouse' | 'doubleLines' | '' = ''
 let leaderboard: LeaderboardEntry[] = []
 
 const bingoSoundEntity = engine.addEntity()
@@ -138,12 +141,25 @@ export async function createWebsocket() {
         if (data.id != currentGame?.id) return
         switch (data.combinaison) {
           case 'line':
+            console.log('line')
+            bingoType = 'line'
+            utils.timers.setTimeout(function () {
+              bingoType = ''
+            }, 15000)
             break
 
           case 'fullHouse':
+            bingoType = 'fullHouse'
+            utils.timers.setTimeout(function () {
+              bingoType = ''
+            }, 15000)
             break
 
           case 'doubleLines':
+            bingoType = 'doubleLines'
+            utils.timers.setTimeout(function () {
+              bingoType = ''
+            }, 15000)
             break
 
           default:
@@ -794,7 +810,7 @@ const uiComponent = () => (
                   width: 279.75,
                   height: 61.5
                 }}
-                textAlign='middle-left'
+                textAlign="middle-left"
                 value={`${index + 1}. ${data.address.length > 18 ? data.address.slice(0, 18) + '...' : data.address}`}
                 fontSize={24}
                 color={Color4.Purple()}
@@ -1037,12 +1053,12 @@ const uiComponent = () => (
             fontSize={24}
             onMouseDown={async () => {
               console.log(number[0])
-              let checkCell = await clickCell(currentGame?.id || '', number[0])
-              console.log(checkCell)
-
               if (bingoNumbers.includes(number[0])) {
                 number[1] = true
               }
+
+              let checkCell = await clickCell(currentGame?.id || '', number[0])
+              console.log(checkCell)
             }}
           />
         ))}
@@ -1346,6 +1362,37 @@ const uiComponent = () => (
         }}
       />
     </UiEntity>
+    <UiEntity // BINGO
+      uiTransform={{
+        display: bingoType != '' ? 'flex' : 'none',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        positionType: 'absolute',
+        position: {
+          right: '30%',
+          bottom: '15%'
+        },
+        width: 520,
+        height: 520
+      }}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: {
+          src:
+            bingoType === 'line'
+              ? 'images/bingoLine.png'
+              : bingoType === 'fullHouse'
+              ? 'images/bingoFullHouse.png'
+              : bingoType === 'doubleLines'
+              ? 'images/bingoDoubleLines.png'
+              : ''
+        }
+      }}
+      onMouseDown={() => {
+        bingoType = ''
+      }}
+    ></UiEntity>
     <Label // test button
       uiTransform={{
         display: 'flex',
@@ -1371,7 +1418,29 @@ const uiComponent = () => (
         positionType: 'absolute',
         position: {
           right: '0%',
-          top: '10%'
+          top: '8.5%'
+        },
+        width: 50,
+        height: 50
+      }}
+      value="Bingo"
+      fontSize={12}
+      onMouseDown={() => {
+        bingoType = 'line'
+
+        utils.timers.setTimeout(function () {
+          console.log('3 seconds passed')
+          bingoType = ''
+        }, 3000)
+      }}
+    />
+    <Label // test button
+      uiTransform={{
+        display: 'flex',
+        positionType: 'absolute',
+        position: {
+          right: '0%',
+          top: '20%'
         },
         width: 50,
         height: 50
