@@ -924,7 +924,7 @@ const uiComponent = () => (
                   height: 61.5
                 }}
                 textAlign="middle-left"
-                value={`${index + 1}. ${data.address.length > 18 ? data.address.slice(0, 18) + '...' : data.address}`}
+                value={`${index + 1}. ${data.name || data.address.length > 18 ? data.address.slice(0, 18) + '...' : data.address}`}
                 fontSize={24}
                 color={Color4.Purple()}
               />
