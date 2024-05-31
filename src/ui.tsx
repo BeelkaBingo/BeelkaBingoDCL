@@ -365,7 +365,7 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         fontSize={18}
-        onMouseDown={ async () => {
+        onMouseDown={async () => {
           leaderboard = await getLeaderboard()
           console.log(leaderboard)
 
@@ -737,6 +737,85 @@ const uiComponent = () => (
         }
       }}
     >
+      <UiEntity
+        uiTransform={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          positionType: 'absolute',
+          position: { top: '20%' },
+          width: 1000,
+          height: 350
+        }}
+      >
+        <UiEntity
+          uiTransform={{
+            display: 'flex',
+            flexDirection: 'column',
+            margin: {
+              top: '4%'
+            }
+          }}
+        >
+          {leaderboard.map((data, index) => (
+            <UiEntity
+              key={index}
+              uiTransform={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                width: 1000,
+                height: 'auto',
+                margin: {
+                  bottom: '1%'
+                }
+              }}
+            >
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5
+                }}
+                textAlign='middle-left'
+                value={`${index + 1}. ${data.address.length > 18 ? data.address.slice(0, 18) + '...' : data.address}`}
+                fontSize={24}
+                color={Color4.Purple()}
+              />
+
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5
+                }}
+                value={data.games.toString()}
+                fontSize={32}
+                color={Color4.Purple()}
+              />
+
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5
+                }}
+                value={data.wins.toString()}
+                fontSize={24}
+                color={Color4.Purple()}
+              />
+
+              <Label
+                uiTransform={{
+                  width: 279.75,
+                  height: 61.5
+                }}
+                value={data.accuracy ? data.accuracy.toString() : '0'}
+                fontSize={24}
+                color={Color4.Purple()}
+              />
+            </UiEntity>
+          ))}
+        </UiEntity>
+      </UiEntity>
       <Button
         uiTransform={{
           width: 279.75,
@@ -970,7 +1049,8 @@ const uiComponent = () => (
         variant="secondary"
         onMouseDown={async () => {
           playBingoSound()
-          callBingo(currentGame?.id || '')
+          const checkBingo = callBingo(currentGame?.id || '')
+          console.log(checkBingo)
         }}
       />
     </UiEntity>
