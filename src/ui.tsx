@@ -13,6 +13,7 @@ import {
   getLeaderboard,
   getLoginCode,
   joinGame,
+  leaveGame,
   nukeGame,
   pauseGame,
   startGame
@@ -241,6 +242,8 @@ const handleEnterGame = async (gameId: string) => {
 }
 
 const handleClearCurrentGameData = () => {
+  leaveGame(currentGame?.id || '')
+
   newGameName = ''
   currentGame = null
   gameList = []

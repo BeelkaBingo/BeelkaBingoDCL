@@ -23,6 +23,17 @@ export async function joinGame(gameId: string) {
   const body = await res.body
   return JSON.parse(body) as stringResult
 }
+export async function leaveGame(gameId: string) {
+  const res = await signedFetch({
+    url: 'https://bingo.dcl.guru/game/' + gameId + '/leave',
+    init: {
+      method: 'POST',
+      headers: {}
+    }
+  })
+  const body = await res.body
+  return JSON.parse(body) as stringResult
+}
 export async function clickCell(gameId: string, number: number) {
   const res = await signedFetch({
     url: 'https://bingo.dcl.guru/game/' + gameId + '/click',
