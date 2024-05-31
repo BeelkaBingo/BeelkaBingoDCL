@@ -783,7 +783,7 @@ const uiComponent = () => (
         onMouseDown={async () => {
           const adminName = getPlayer()
           console.log('adminName', adminName)
-          await createGame(newGameName, 0.5, adminName?.name || 'Guest')
+          await createGame(newGameName, 10, adminName?.name || 'Guest')
           showMenu = true
           showNewGameMenu = false
         }}
