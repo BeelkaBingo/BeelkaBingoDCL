@@ -1,9 +1,9 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { AudioSource, engine } from "@dcl/sdk/ecs"
 import {
   Game,
   WebsocketEvents,
-  checkCell,
   clickCell,
   createGame,
   getActiveGamesList,
@@ -16,6 +16,7 @@ import {
 } from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
+import { createNumbers } from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -46,6 +47,18 @@ let currentGameListIndex = 0
 let currentGames: Game[] = []
 
 let gamePaused = true
+
+const bingoSoundEntity = engine.addEntity()
+AudioSource.create(bingoSoundEntity, {
+  audioClipUrl: 'sounds/bingoVoice.mp3',
+  loop: false,
+  playing: false,
+  volume: 1
+})
+function playBingoSound() {
+  const audioSource = AudioSource.getMutable(bingoSoundEntity)
+  audioSource.playing = true
+}
 
 const generateBingoNumbers = () => {
   return bingoNumbers.map((number, index) => (
@@ -108,6 +121,9 @@ export async function createWebsocket() {
         bingoNumbers.push(data.number)
         generateBingoNumbers()
         console.log(bingoNumbers)
+        bingoNumbers.forEach((number, index) => {
+          createNumbers(number, index)
+        })
         break
       case 'bingo':
         console.log('Bingo', data.id, data.address, data.combinaison)
@@ -338,6 +354,11 @@ const uiComponent = () => (
                   const myPlayer = getPlayer()
                   console.log('Joining game', game.id)
                   currentGame = game
+                  bingoNumbers.length = 0
+                  bingoNumbers.push(...currentGame.drawnNumbers.flatMap((num) => num.number))
+                  bingoNumbers.forEach((number, index) => {
+                    createNumbers(number, index)
+                  })
                   if (myPlayer && game.admin === myPlayer.userId) {
                     await joinGame(game.id)
                     showAdminMenu = true
@@ -822,9 +843,12 @@ const uiComponent = () => (
             onMouseDown={async () => {
               // number[1] = true
               console.log(number[0])
-              // let checkCell = await clickCell(currentGame?.id || '', number[0])
-              let checkCellRes = await checkCell(currentGame?.id || '', number[0])
-              console.log(checkCellRes)
+              let checkCell = await clickCell(currentGame?.id || '', number[0])
+              console.log(checkCell)
+
+              if (bingoNumbers.includes(number[0])) {
+                number[1] = true
+              }
             }}
           />
         ))}
@@ -846,7 +870,9 @@ const uiComponent = () => (
         }}
         value=""
         variant="secondary"
-        onMouseDown={() => {}}
+        onMouseDown={() => {
+          playBingoSound()
+        }}
       />
     </UiEntity>
     <UiEntity // Bingo Board
@@ -863,7 +889,7 @@ const uiComponent = () => (
           top: '1%'
         },
         width: 830,
-        height: 830
+        height: 'auto'
       }}
     >
       {generateBingoNumbers()}

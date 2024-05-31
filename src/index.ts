@@ -43,26 +43,32 @@ export function main() {
   //   createCube(38.2 + (index % 5) * 7, 7, 32.5 - Math.floor(index / 5) * 7, number)
   // })
 
-  function createNumbers(number: number, index: number) {
-    const numberEntity = engine.addEntity()
-    MeshRenderer.setPlane(numberEntity)
-    Transform.create(numberEntity, {
-      position: { x: 40 - index , y: 5, z: 32.5 },
-      scale: { x: 1, y: 1, z: 1 }
-    })
-    Material.setPbrMaterial(numberEntity, {
-      texture: Material.Texture.Common({
-        src: 'images/numbers/' + number + '.png'
-      }),
-      transparencyMode: MaterialTransparencyMode.MTM_ALPHA_TEST,
-      alphaTest: 1,
-      metallic: 0.1,
-      // albedoColor: { r: 0, g: 0, b: 0, a: 1 }
-    })
-    Billboard.create(numberEntity, {})
-  }
+  // bingoNumbers.forEach((number, index) => {
+  //   createNumbers(number, index)
+  // })
+}
 
-  bingoNumbersTest.forEach((number, index) => {
-    createNumbers(number, index)
+export function createNumbers(number: number, index: number) {
+  const numberEntity = engine.addEntity()
+  MeshRenderer.setPlane(numberEntity)
+
+  const row = Math.floor(index / 9)
+  const col = index % 9
+
+  Transform.create(numberEntity, {
+    position: { x: 42 - col, y: 5 + row, z: 32.5 },
+    scale: { x: 1.2, y: 1.2, z: 1 }
   })
+
+  Material.setPbrMaterial(numberEntity, {
+    texture: Material.Texture.Common({
+      src: 'images/numbers/' + number + '.png'
+    }),
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_TEST,
+    alphaTest: 0.5,
+    metallic: 0.5,
+    albedoColor: { r: 1.7, g: 1.7, b: 1.7, a: 1 }
+  })
+
+  Billboard.create(numberEntity, {})
 }
