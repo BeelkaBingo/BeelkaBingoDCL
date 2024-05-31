@@ -22,7 +22,7 @@ import {
 } from './utils'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
-import { createBalls, createNumbers, removeAllCreatedEntities } from '.'
+import { createBalls, createNumbers, removeAllCreatedEntities, removeBallBlue, removeBallPink } from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -703,6 +703,8 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={24}
         onMouseDown={() => {
+          removeBallPink()
+          removeBallBlue()
           showMenu = true
           showJoinGameMenu = false
           createBalls()
@@ -806,6 +808,8 @@ const uiComponent = () => (
         variant="secondary"
         fontSize={24}
         onMouseDown={() => {
+          removeBallPink()
+          removeBallBlue()
           showMenu = true
           showNewGameMenu = false
           newGameName = ''
