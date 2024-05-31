@@ -63,5 +63,8 @@
   "featureToggles": {
     "voiceChat": "enabled",
     "portableExperiences": "enabled"
+  },
+  "worldConfiguration": {
+    "name": "beelka.dcl.eth"
   }
 }
