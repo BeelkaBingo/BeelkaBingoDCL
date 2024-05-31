@@ -134,6 +134,20 @@ export async function createWebsocket() {
         break
       case 'bingo':
         console.log('Bingo', data.id, data.address, data.combinaison)
+        if (data.id != currentGame?.id) return
+        switch (data.combinaison) {
+          case 'line':
+            break
+
+          case 'fullHouse':
+            break
+
+          case 'doubleLines':
+            break
+
+          default:
+            break
+        }
         break
     }
   }
