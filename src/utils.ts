@@ -1,3 +1,4 @@
+import { getPlayer } from '@dcl/sdk/src/players'
 import { signedFetch } from '~system/SignedFetch'
 import { getUserData } from '~system/UserIdentity'
 
@@ -122,11 +123,13 @@ export async function getActiveGamesList() {
   return JSON.parse(body) as Game[]
 }
 export async function getLoginCode() {
+  const user = await getPlayer()
+  const url = user?.name ? 'https://bingo.dcl.guru/login?name=' + user?.name : 'https://bingo.dcl.guru/login'
   const res = await signedFetch({
-    url: 'https://bingo.dcl.guru/login',
+    url,
     init: {
       method: 'GET',
-      headers: {}
+      headers: {},
     }
   })
   const body = await res.body
@@ -159,6 +162,7 @@ export async function getLeaderboard() {
 
 export interface LeaderboardEntry {
   address: string
+  name?: string
   games: number
   wins: number
   accuracy: number
