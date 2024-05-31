@@ -1,6 +1,6 @@
-import { Color4 } from '@dcl/sdk/math'
+import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { AudioSource, engine } from '@dcl/sdk/ecs'
+import { AudioSource, AudioStream, engine, Entity, Transform } from '@dcl/sdk/ecs'
 import {
   Game,
   LeaderboardEntry,
@@ -56,13 +56,50 @@ let gamePaused = true
 
 let leaderboard: LeaderboardEntry[] = []
 
+const streamEntity = engine.addEntity()
+AudioStream.create(streamEntity, {
+  url: 'https://audio.dcl.guru/radio/8100/radio.mp3?1717186180',
+  playing: true,
+  volume: 0.05,
+})
+
+const numbers: Entity[] = []
+for (let i = 1; i < 25; i++) {
+  const numberEntity = engine.addEntity()
+  AudioSource.create(numberEntity, {
+    audioClipUrl: `sounds/numbers/${i}.mp3`,
+    loop: false,
+    playing: false,
+    global: true,
+    volume: 1
+  })
+  Transform.create(numberEntity, {
+    scale: Vector3.create(0.2, 0.2, 0.2),
+    position: Vector3.create(0, 0.4, 0),
+    parent: engine.PlayerEntity,
+  })
+  numbers.push(numberEntity)
+}
+
+function playNumberSound(number: number) {
+  const audioSource = AudioSource.getMutable(numbers[number - 1])
+  audioSource.playing = true
+}
+
 const bingoSoundEntity = engine.addEntity()
 AudioSource.create(bingoSoundEntity, {
   audioClipUrl: 'sounds/bingoVoice.mp3',
   loop: false,
   playing: false,
+  global: true,
   volume: 1
 })
+Transform.create(bingoSoundEntity, {
+  scale: Vector3.create(0.2, 0.2, 0.2),
+  position: Vector3.create(0, 0.4, 0),
+  parent: engine.PlayerEntity,
+})
+
 function playBingoSound() {
   const audioSource = AudioSource.getMutable(bingoSoundEntity)
   audioSource.playing = true
@@ -124,8 +161,10 @@ export async function createWebsocket() {
         console.log('Player left', data.id, data.address)
         break
       case 'numberDrawn':
+        if(data.id != currentGame?.id) return
         console.log('Number drawn', data.id, data.number)
         console.log('new number drawn', data.number)
+        playNumberSound(data.number) 
         bingoNumbers.push(data.number)
         generateBingoNumbers()
         console.log(bingoNumbers)
