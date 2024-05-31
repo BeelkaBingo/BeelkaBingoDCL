@@ -1,6 +1,6 @@
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { AudioSource, AudioStream, engine, Entity, Transform } from '@dcl/sdk/ecs'
+import { AudioSource, AudioStream, engine, Entity, executeTask, Transform } from '@dcl/sdk/ecs'
 export * from '@dcl/sdk'
 import * as utils from '@dcl-sdk/utils'
 import {
@@ -84,11 +84,50 @@ for (let i = 1; i < 25; i++) {
   numbers.push(numberEntity)
 }
 
+const bingoSounds: { [name: string]: Entity } = {}
+for (const sound of ["line", "fullHouse", "doubleLines"]) {
+  const audioSource = engine.addEntity()
+  AudioSource.create(audioSource, {
+    audioClipUrl: `sounds/bingos/${sound}.mp3`,
+    loop: false,
+    playing: false,
+    global: true,
+    volume: 1
+  })
+  Transform.create(audioSource, {
+    scale: Vector3.create(0.2, 0.2, 0.2),
+    position: Vector3.create(0, 0.4, 0),
+    parent: engine.PlayerEntity
+  })
+  bingoSounds[sound] = (audioSource)
+}
+executeTask(async () => {
+  const audioSource = engine.addEntity()
+  AudioSource.create(audioSource, {
+    audioClipUrl: `sounds/bingoVoice.mp3`,
+    loop: false,
+    playing: false,
+    global: true,
+    volume: 1
+  })
+  Transform.create(audioSource, {
+    scale: Vector3.create(0.2, 0.2, 0.2),
+    position: Vector3.create(0, 0.4, 0),
+    parent: engine.PlayerEntity
+  })
+  bingoSounds["bingo"] = (audioSource)
+})
+
+function playBingoSound(sound: string) {
+  const audioSource = AudioSource.getMutable(bingoSounds[sound])
+  audioSource.playing = true
+}
+
 function playNumberSound(number: number) {
   const audioSource = AudioSource.getMutable(numbers[number - 1])
   audioSource.playing = true
 }
-
+/* 
 const bingoSoundEntity = engine.addEntity()
 AudioSource.create(bingoSoundEntity, {
   audioClipUrl: 'sounds/bingoVoice.mp3',
@@ -106,7 +145,7 @@ Transform.create(bingoSoundEntity, {
 function playBingoSound() {
   const audioSource = AudioSource.getMutable(bingoSoundEntity)
   audioSource.playing = true
-}
+} */
 
 const generateBingoNumbers = () => {
   return bingoNumbers.map((number, index) => (
@@ -158,6 +197,8 @@ export async function createWebsocket() {
         console.log('Game ended', data.id)
         break
       case 'playerJoined':
+        if (currentGame?.admin.toLowerCase() === myPlayer?.userId.toLowerCase()) {
+        }
         console.log('Player joined', data.id, data.address)
         break
       case 'playerLeft':
@@ -180,6 +221,7 @@ export async function createWebsocket() {
         if (data.id != currentGame?.id) return
         switch (data.combinaison) {
           case 'line':
+            playBingoSound("line")
             console.log('line')
             bingoType = 'line'
             utils.timers.setTimeout(function () {
@@ -188,6 +230,7 @@ export async function createWebsocket() {
             break
 
           case 'fullHouse':
+            playBingoSound("fullHouse")
             bingoType = 'fullHouse'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -195,6 +238,7 @@ export async function createWebsocket() {
             break
 
           case 'doubleLines':
+            playBingoSound("doubleLines")
             bingoType = 'doubleLines'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -1101,8 +1145,8 @@ const uiComponent = () => (
                   number[1] === true
                     ? 'images/acorns1.png'
                     : number[0] === 0
-                    ? 'images/cellBlue.png'
-                    : 'images/cellPink.png'
+                      ? 'images/cellBlue.png'
+                      : 'images/cellPink.png'
               }
             }}
             value={number[0] === 0 ? '' : number[0].toString()}
@@ -1137,8 +1181,8 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         onMouseDown={async () => {
-          playBingoSound()
-          const checkBingo = callBingo(currentGame?.id || '')
+          playBingoSound("bingo")
+          const checkBingo = await callBingo(currentGame?.id || '')
           console.log(checkBingo)
         }}
       />
@@ -1439,10 +1483,10 @@ const uiComponent = () => (
             bingoType === 'line'
               ? 'images/bingoLine.png'
               : bingoType === 'fullHouse'
-              ? 'images/bingoFullHouse.png'
-              : bingoType === 'doubleLines'
-              ? 'images/bingoDoubleLines.png'
-              : ''
+                ? 'images/bingoFullHouse.png'
+                : bingoType === 'doubleLines'
+                  ? 'images/bingoDoubleLines.png'
+                  : ''
         }
       }}
       onMouseDown={() => {
