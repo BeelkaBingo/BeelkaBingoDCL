@@ -1,6 +1,6 @@
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, Button, Input, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { AudioSource, AudioStream, engine, Entity, Transform } from '@dcl/sdk/ecs'
+import { AudioSource, AudioStream, engine, Entity, executeTask, Transform } from '@dcl/sdk/ecs'
 export * from '@dcl/sdk'
 import * as utils from '@dcl-sdk/utils'
 import {
@@ -101,6 +101,22 @@ for (const sound of ["line", "fullHouse", "doubleLines"]) {
   })
   bingoSounds[sound] = (audioSource)
 }
+executeTask(async () => {
+  const audioSource = engine.addEntity()
+  AudioSource.create(audioSource, {
+    audioClipUrl: `sounds/bingoVoice.mp3`,
+    loop: false,
+    playing: false,
+    global: true,
+    volume: 1
+  })
+  Transform.create(audioSource, {
+    scale: Vector3.create(0.2, 0.2, 0.2),
+    position: Vector3.create(0, 0.4, 0),
+    parent: engine.PlayerEntity
+  })
+  bingoSounds["bingo"] = (audioSource)
+})
 
 function playBingoSound(sound: string) {
   const audioSource = AudioSource.getMutable(bingoSounds[sound])
@@ -205,6 +221,7 @@ export async function createWebsocket() {
         if (data.id != currentGame?.id) return
         switch (data.combinaison) {
           case 'line':
+            playBingoSound("line")
             console.log('line')
             bingoType = 'line'
             utils.timers.setTimeout(function () {
@@ -213,6 +230,7 @@ export async function createWebsocket() {
             break
 
           case 'fullHouse':
+            playBingoSound("fullHouse")
             bingoType = 'fullHouse'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -220,6 +238,7 @@ export async function createWebsocket() {
             break
 
           case 'doubleLines':
+            playBingoSound("doubleLines")
             bingoType = 'doubleLines'
             utils.timers.setTimeout(function () {
               bingoType = ''
@@ -1162,20 +1181,8 @@ const uiComponent = () => (
         value=""
         variant="secondary"
         onMouseDown={async () => {
+          playBingoSound("bingo")
           const checkBingo = await callBingo(currentGame?.id || '')
-          switch (checkBingo.message) {
-            case 'line':
-              playBingoSound('line')
-              break
-            case 'fullHouse':
-              playBingoSound('fullHouse')
-              break
-            case 'doubleLines':
-              playBingoSound('doubleLines')
-              break
-            default:
-              break
-          }
           console.log(checkBingo)
         }}
       />
