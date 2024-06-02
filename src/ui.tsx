@@ -445,6 +445,8 @@ const uiComponent = () => (
           console.log(gameList)
           showMenu = false
           showJoinGameMenu = true
+          removeBallBlue()
+          removeBallPink()
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -468,6 +470,8 @@ const uiComponent = () => (
           showMenu = false
           showNewGameMenu = true
           newGameName = ''
+          removeBallPink()
+          removeBallBlue()
         }}
         uiBackground={{
           textureMode: 'stretch',
@@ -1289,6 +1293,7 @@ const uiComponent = () => (
           if (!currentGame) return
           await startGame(currentGame.id)
           isGameStarted = true
+          gamePaused = false
         }}
         uiBackground={{
           textureMode: 'stretch',
