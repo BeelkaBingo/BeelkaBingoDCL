@@ -68,7 +68,7 @@ AudioStream.create(streamEntity, {
 })
 
 const numbers: Entity[] = []
-for (let i = 1; i < 25; i++) {
+for (let i = 1; i < 91; i++) {
   const numberEntity = engine.addEntity()
   AudioSource.create(numberEntity, {
     audioClipUrl: `sounds/numbers/${i}.mp3`,
@@ -225,9 +225,10 @@ export async function createWebsocket() {
         bingoNumbers.push(data.number)
         generateBingoNumbers()
         console.log(bingoNumbers)
-        bingoNumbers.forEach((number, index) => {
-          createNumbers(number, index)
-        })
+        createNumbers(data.number, bingoNumbers.length - 1)
+        // bingoNumbers.forEach((number, index) => {
+        //   createNumbers(number, index)
+        // })
         break
       case 'bingo':
         console.log('Bingo', data.id, data.address, data.combinaison)
