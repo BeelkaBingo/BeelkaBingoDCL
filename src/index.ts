@@ -18,7 +18,9 @@ import {
   TweenSequence
 } from '@dcl/sdk/ecs'
 import { handleJoinGameClick, handleNewGameClick, setupUi } from './ui'
-import { Vector3 } from '@dcl/sdk/math'
+import { Quaternion, Vector3 } from '@dcl/sdk/math'
+import * as npc from 'dcl-npc-toolkit'
+import { welcomeScript } from './dialog'
 
 export function main() {
   setupUi()
@@ -31,8 +33,32 @@ export function main() {
     position: { x: 0, y: 0, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   })
-  
+
   createBalls()
+
+  let acornCharacter = npc.create(
+    {
+      position: Vector3.create(1, 0, 1),
+      rotation: Quaternion.fromEulerDegrees(0, 0, 0),
+      scale: Vector3.create(1, 1, 1)
+    },
+    {
+      type: npc.NPCType.CUSTOM,
+      model: {
+        src: 'assets/scene/models/acornChar.glb'
+      },
+      // faceUser: true,
+      portrait: { path: 'images/acornCharIcon.png' },
+      onActivate: () => {
+        npc.talk(acornCharacter, welcomeScript)
+      },
+      onWalkAway: () => {
+        console.log('test on walk away function')
+        npc.closeDialogWindow(acornCharacter)
+      }
+    }
+  )
+
 }
 
 const createdEntities: Entity[] = []
@@ -77,7 +103,7 @@ export function createBalls() {
   const ballPink = engine.addEntity()
   GltfContainer.create(ballPink, {
     src: 'assets/scene/models/ballPink.glb',
-    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER,
+    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER
   })
   Transform.create(ballPink, {
     position: { x: 0, y: 0, z: 0 },
@@ -86,10 +112,10 @@ export function createBalls() {
   Tween.create(ballPink, {
     mode: Tween.Mode.Move({
       start: Vector3.create(0, 0, 0),
-      end: Vector3.create(0, 3, 0),
+      end: Vector3.create(0, 3, 0)
     }),
     duration: 4000,
-    easingFunction: EasingFunction.EF_EASESINE,
+    easingFunction: EasingFunction.EF_EASESINE
   })
   TweenSequence.create(ballPink, { sequence: [], loop: TweenLoop.TL_YOYO })
   PointerEvents.create(ballPink, {
@@ -117,7 +143,7 @@ export function createBalls() {
   const ballBlue = engine.addEntity()
   GltfContainer.create(ballBlue, {
     src: 'assets/scene/models/ballBlue.glb',
-    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER,
+    visibleMeshesCollisionMask: ColliderLayer.CL_POINTER
   })
   Transform.create(ballBlue, {
     position: { x: 0, y: 0, z: 0 },
@@ -126,10 +152,10 @@ export function createBalls() {
   Tween.create(ballBlue, {
     mode: Tween.Mode.Move({
       start: Vector3.create(0, 3, 0),
-      end: Vector3.create(0, 0, 0),
+      end: Vector3.create(0, 0, 0)
     }),
     duration: 4000,
-    easingFunction: EasingFunction.EF_EASESINE,
+    easingFunction: EasingFunction.EF_EASESINE
   })
   TweenSequence.create(ballBlue, { sequence: [], loop: TweenLoop.TL_YOYO })
   PointerEvents.create(ballBlue, {

@@ -23,9 +23,15 @@ import {
 import { getPlayer } from '@dcl/sdk/src/players'
 import { getUserData } from '~system/UserIdentity'
 import { createBalls, createNumbers, removeAllCreatedEntities, removeBallBlue, removeBallPink } from '.'
+import { NpcUtilsUi } from 'dcl-npc-toolkit'
+
+const uiComponents = () => [
+  uiComponent(),
+  NpcUtilsUi()
+]
 
 export function setupUi() {
-  ReactEcsRenderer.setUiRenderer(uiComponent)
+  ReactEcsRenderer.setUiRenderer(uiComponents)
   createWebsocket()
 }
 
